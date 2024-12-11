@@ -8,6 +8,8 @@ def parse_mission(mission):
         # Extract object and color from "pick up the <color> <object>"
         color = words[-2]
         obj_type = words[-1]
+    elif "open" in mission:
+        return
     else:
         raise ValueError(f"Unknown mission format: {mission}")
     return obj_type, color
