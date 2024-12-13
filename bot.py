@@ -1,8 +1,7 @@
 import numpy as np
-import gymnasium as gym
-from minigrid.utils.baby_ai_bot import BabyAIBot
-from collections import deque
-from minigrid.core.actions import Actions
+from utils import parse_mission
+
+from minigrid.core.constants import OBJECT_TO_IDX, COLOR_TO_IDX
 
 class Bot:
 
@@ -14,16 +13,22 @@ class Bot:
 
         #Initial goal
         self.mission = self.environment.unwrapped.mission
+        self.actions = self.environment.unwrapped.actions
 
         self.vis_mask = np.zeros(
             shape=(environment.unwrapped.width, environment.unwrapped.height), dtype=bool
         )
 
+        fill_value = (0, 0, 0)
+
         self.vis_obs= np.zeros(
-            shape=(environment.unwrapped.width, environment.unwrapped.height), dtype=int
+            shape=(environment.unwrapped.width, environment.unwrapped.height), dtype=object
         )
 
+        self.goal_type = None
+        self.goal_color = None
         self.goal_pos = None
+        self.scanned = 0
         
 
 
@@ -31,20 +36,24 @@ class Bot:
         """Calculate Manhattan distance between two points."""
         return np.abs(target[0] - pos[0]) + np.abs(target[1] - pos[1])
 
-        # print (self.vis_mask)
+
+    def understand_goal(self):
+        goal = parse_mission(self.mission) #extract the goal from the mission information
+        goal_type, goal_color = goal
+        self.goal_type = OBJECT_TO_IDX[goal_type]
+        self.goal_color = COLOR_TO_IDX[goal_color]
+
+
+        
 
     def take_action(self, environment):
+
+        while not self.goal_type:
+            self.understand_goal()
+
         self._process_obs()
-        while not self.goal_pos:
-            self.goal_pos = self.look_for_goal(4)
-            
-            if not self.goal_pos:
-                return Actions.left
-        
-        
-            
-        return self.move_to_cell()
-        
+
+        return self.plan()
 
     def _process_obs(self):
         """Parse the contents of an observation/image, update our state,
@@ -81,7 +90,7 @@ class Bot:
                 if obs_grid.get(vis_i, vis_j) == None:
                     self.vis_obs[abs_i, abs_j] = 1
                 else:
-                    self.vis_obs[abs_i, abs_j] = obs_grid.get(vis_i, vis_j).encode()[0]
+                    self.vis_obs[abs_i, abs_j] = obs_grid.get(vis_i, vis_j).encode()
                 # print(obj)
 
         rotated_mask = self.vis_mask.T[:, ::-1]
@@ -93,15 +102,42 @@ class Bot:
 
         # print(specular_obs)
 
-    def look_for_goal(self, goal_id):
+    def look_for_goal(self):
 
         for row_index, row in enumerate(self.vis_obs):
             for col_index, element in enumerate(row):
-                if element == goal_id:
-                    return (row_index, col_index)
+                if isinstance(element, tuple):
+                    if element[0] == self.goal_type and element[1] == self.goal_color:
+                        return (row_index, col_index)
+        return None
+
+    def look_for_door(self):
+        for row_index, row in enumerate(self.vis_obs):
+            for col_index, element in enumerate(row):
+                if isinstance(element, tuple):
+                    if element[0] == 4:
+                        return (row_index, col_index)
         return None
     
-    def find_best_cell(self):
+    def plan(self):
+        self.goal_pos = self.look_for_goal()
+
+        if self.scanned == 4:
+            print("Scanned room now looking for door")
+            door = self.look_for_door()
+            return self.move_to_cell(door)
+        
+        
+        while not self.goal_pos:
+            self.scanned += 1
+            return self.actions.left
+        
+        self.scanned = 0
+                      
+        return self.move_to_cell(self.goal_pos)
+        
+    
+    def find_best_cell(self, target):
         pos = self.environment.unwrapped.agent_pos
         f_vec = self.environment.unwrapped.dir_vec
 
@@ -117,11 +153,12 @@ class Bot:
         
         for cell in possible_cells:
             # Skip walls or invalid cells
-            if self.vis_obs[cell[0], cell[1]] == 2:
-                continue
+            if isinstance(self.vis_obs[cell[0], cell[1]], tuple):
+                    if self.vis_obs[cell[0], cell[1]][0] != self.goal_type:
+                        continue
 
             # Calculate Manhattan distance to goal
-            distance = self.manhattan_distance(cell, self.goal_pos)
+            distance = self.manhattan_distance(cell, target)
 
             # Update the best cell if this one is closer
             if distance < min_distance:
@@ -137,28 +174,32 @@ class Bot:
         return best_cell, min_distance    
 
             
-    def move_to_cell(self):
+    def move_to_cell(self, target):
 
-        cell_pos, dist = self.find_best_cell()
+        cell_pos, dist = self.find_best_cell(target)
         pos = self.environment.unwrapped.agent_pos
         f_vec = self.environment.unwrapped.dir_vec
         r_dir = self.environment.unwrapped.right_vec
 
         direction_to_cell = cell_pos[0]-pos[0], cell_pos[1]-pos[1]
 
-        if dist >= 1:
-            if np.array_equal(direction_to_cell, np.array(f_vec)):
-                print("Move forward")
-                return Actions.forward
+        
+        if np.array_equal(direction_to_cell, np.array(f_vec)):
+            print("Move forward")
+            if isinstance(self.vis_obs[cell_pos[0], cell_pos[1]], tuple):
+                if self.vis_obs[cell_pos[0], cell_pos[1]][0]:
+                    return self.actions.toggle
+                return self.actions.pickup
+            return self.actions.forward
         if np.array_equal(direction_to_cell, np.array(r_dir)):
             print("Rotate clockwise (90 degrees)")
-            return Actions.right
+            return self.actions.right
         elif np.array_equal(direction_to_cell, -np.array(r_dir)):
             print("Rotate counterclockwise (90 degrees)")
-            return Actions.left
+            return self.actions.left
         else:
             print("Reached Goal")
-            return Actions.done
+            return self.actions.done
 
 
 

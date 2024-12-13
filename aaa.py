@@ -43,12 +43,12 @@ if __name__ == "__main__":
 
         mission = bot.mission
         print(mission)
-        agent_position = env.unwrapped.agent_pos
-        print(f"Agent's absolute position: {agent_position}")
-        # goal = utils.parse_mission(mission) #extract the goal from the mission information
-        # goal_type, goal_color = goal
-        # goal_type = OBJECT_TO_IDX[goal_type]
-        # goal_color = COLOR_TO_IDX[goal_color]
+
+        goal = utils.parse_mission(mission) #extract the goal from the mission information
+        goal_type, goal_color = goal
+        goal_type = OBJECT_TO_IDX[goal_type]
+        goal_color = COLOR_TO_IDX[goal_color]
+        print(goal_type)
         width = env.unwrapped.width
         height= env.unwrapped.height
         #print(width, height)
