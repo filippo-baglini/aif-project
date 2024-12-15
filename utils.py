@@ -1,18 +1,5 @@
-def parse_mission(mission):
-    words = mission.split()
-    if "go to" in mission:
-        # Extract object and color from "go to the <color> <object>"
-        color = words[-2]
-        obj_type = words[-1]
-    elif "pick up" in mission:
-        # Extract object and color from "pick up the <color> <object>"
-        color = words[-2]
-        obj_type = words[-1]
-        
-    elif "open" in mission:
-        color = words[-2]
-        obj_type = words[-1]
-    else:
-        raise ValueError(f"Unknown mission format: {mission}")
-    return obj_type, color
+import numpy as np
 
+def manhattan_distance(pos, target):
+        """Calculate Manhattan distance between two points."""
+        return np.abs(target[0] - pos[0]) + np.abs(target[1] - pos[1])

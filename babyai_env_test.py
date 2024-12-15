@@ -1,8 +1,7 @@
 import gymnasium as gym
-from minigrid.utils.baby_ai_bot import BabyAIBot
 
 from bot import Bot
-import utils
+from goal_parser import *
 import time
 from minigrid.core.constants import OBJECT_TO_IDX, COLOR_TO_IDX
 
@@ -42,16 +41,7 @@ if __name__ == "__main__":
         max_steps = 100
 
         mission = bot.mission
-        print(mission)
-        
-        goal = utils.parse_mission(mission) #extract the goal from the mission information
-        goal_type, goal_color = goal
-        goal_type = OBJECT_TO_IDX[goal_type]
-        goal_color = COLOR_TO_IDX[goal_color]
-
   
-
-
         for i in range (max_steps):
             # time.sleep(1)
             action = bot.take_action(env)  # Call the test function
