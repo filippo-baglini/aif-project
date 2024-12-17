@@ -34,14 +34,21 @@ class Bot:
 
     def take_action(self, environment):
 
-        plan = Planner(self)
+        # Update the visibility mask and observations
         self.vis_mask, self.vis_obs = _process_obs(environment, self.vis_mask, self.vis_obs)
 
-        if plan.look_for_goal() is None:
-            return self.actions.left
+        # Create a planner instance
+        plan = Planner(self)
+
+        # Check if the goal is visible
+        goal_pos = plan.look_for_goal()  # Returns the goal's position if visible, else None
+        if goal_pos is None:
+            # print("Goal not visible, exploring...")
+            
+            return self.actions.left # Rotate left to explore
 
         else:
-            return plan.move_to_goal()
+            return plan.move_to_target(goal_pos)
 
 
 

@@ -38,6 +38,7 @@ def _process_obs(env, agent_vis_mask, agent_vis_obs):
 
         rotated_mask = agent_vis_mask.T[:, ::-1]
         specular_mask = rotated_mask[:, ::-1] #for visual debugging vis_mask
+        # print(specular_mask)
 
         rotated_obs = agent_vis_obs.T[:, ::-1]
         specular_obs = rotated_obs[:, ::-1] #for visual debugging vis_obs

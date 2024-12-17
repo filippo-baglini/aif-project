@@ -27,7 +27,7 @@ if __name__ == "__main__":
 
     for env_id in babyai_envs:  # Loop through all environments
         print(f"Testing environment: {env_id}")
-        env = gym.make(env_id, render_mode="human", agent_pov = False)
+        env = gym.make(env_id, render_mode ="human", agent_pov = False)
         # env = gym.make("BabyAI-Open-v0", render_mode = "human")
         env.reset()  
 
@@ -43,12 +43,13 @@ if __name__ == "__main__":
         mission = bot.mission
   
         for i in range (max_steps):
-            # time.sleep(1)
+            # time.sleep(2)
             action = bot.take_action(env)  # Call the test function
             
             obs, reward, terminated, truncated, info = env.step(action)
             
             if terminated:
+                print(reward)
                 break
 
             env.render()
