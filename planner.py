@@ -2,21 +2,48 @@ import numpy as np
 
 from goal_parser import understand_goal
 from utils import manhattan_distance
+from environment_handler import _process_obs
 import heapq
 
 class Planner:
 
-    def __init__(self, bot):
-        self.pos = bot.environment.unwrapped.agent_pos
-        self.f_vec = bot.environment.unwrapped.dir_vec
-        self.r_vec = bot.environment.unwrapped.right_vec
-        self.vis_mask = bot.vis_mask
-        self.vis_obs = bot.vis_obs
-        self.actions = bot.actions
+    def __init__(self, env):
+        self.env = env
 
-        self.goal_type, self.goal_color = understand_goal(bot.mission)
+        pos = env.unwrapped.agent_pos
+        self.pos = (pos[0].item(), pos[1].item())
 
+        self.f_vec = env.unwrapped.dir_vec
+        self.r_vec = env.unwrapped.right_vec
+
+        self.vis_mask = np.zeros(
+            shape=(env.unwrapped.width, env.unwrapped.height), dtype=bool
+        )
+
+
+        self.vis_obs= np.zeros(
+            shape=(env.unwrapped.width, env.unwrapped.height), dtype=object
+        )
+
+        self.mission = env.unwrapped.mission
+        self.actions = env.unwrapped.actions
+
+        self.goal_type, self.goal_color = understand_goal(self.mission)
+
+        self.target = None
         self.path = []
+
+        self.test = []
+
+    def __call__(self):
+
+        pos = self.env.unwrapped.agent_pos
+        self.pos = (pos[0].item(), pos[1].item())
+        
+        self.f_vec = self.env.unwrapped.dir_vec
+        self.r_vec = self.env.unwrapped.right_vec
+        self.vis_mask , self.vis_obs = _process_obs(self.env, self.vis_mask, self.vis_obs)
+
         
 
     def look_for_goal(self):
@@ -80,14 +107,14 @@ class Planner:
 
             # Explore neighbors
             for neighbor in self.neighbors(current):
-                # # Tentative g-score
-                # tentative_g = g_score[current] + 1  # Assuming uniform movement cost
 
                 # Check if a better direction is already faced (this is where your rotation logic applies)
                 direction_to_cell = (neighbor[0] - current[0], neighbor[1] - current[1])
                 if np.array_equal(direction_to_cell, np.array(self.f_vec)):
                     # No rotation needed, just moving forward
                     tentative_g = g_score[current] + 1  # Moving forward
+                elif np.array_equal(direction_to_cell, -np.array(self.f_vec)):
+                    tentative_g =  g_score[current] + 3
                 else:
                     # Rotation + move forward (rotate 90 degrees)
                     tentative_g = g_score[current] + 2  # Rotate and move
@@ -112,7 +139,7 @@ class Planner:
                     continue
                     # if self.vis_obs[cell[0], cell[1]][0] != 5 or self.vis_obs[cell[0], cell[1]][0] != 6 :
                     #     continue
-                if 0 <= neighbor[0] < len(self.vis_obs[0]) and 0 <= neighbor[1] < len(self.vis_obs[1]):  #Bound check for cell
+                if 0 <= neighbor[0] < len(self.vis_mask[0]) and 0 <= neighbor[1] < len(self.vis_mask[1]):  #Bound check for cell
                     result.append(neighbor)
             return result
     
@@ -123,31 +150,30 @@ class Planner:
         Parameters:
             path (list): A list of (x, y) tuples representing the path from A*.
         """
-
-        # Check if the path is empty
-        if not self.path:
+        # Use A star only if path empty or if new target to goal
+        if len(self.path) == 0 or self.target != target:
+            # print("USE A STAR")
             self.path = self.a_star_search(target)
-            # print("No path available.")
-            # return self.actions.done
-        # Remove the start position (current position) from the path, if present
-        if self.pos == self.path[0]:
-            self.path = self.path[1:]
+            self.target = target
+
 
         # Iterate through the path
-        cell_pos = self.path.pop(0)
-        # print(cell_pos)
+        cell_pos = self.path[0]
         pos = self.pos
         f_vec = self.f_vec
         r_dir = self.r_vec
 
+
         # Calculate direction to the next cell
-        direction_to_cell = cell_pos[0] - pos[0], cell_pos[1] - pos[1]
+        direction_to_cell = (cell_pos[0] - pos[0], cell_pos[1] - pos[1])
+
 
         # Determine the action based on the direction
         if np.array_equal(direction_to_cell, np.array(f_vec)):
             # print(f"Move forward to {cell_pos}")
             if isinstance(self.vis_obs[cell_pos[0], cell_pos[1]], tuple):
                 return self.actions.pickup  # Interact with objects if necessary
+            self.path.pop(0) #Pop cell from path only if agent moved forward in it
             return self.actions.forward
 
         elif np.array_equal(direction_to_cell, np.array(r_dir)):
@@ -157,6 +183,10 @@ class Planner:
         elif np.array_equal(direction_to_cell, -np.array(r_dir)):
             # print("Rotate counterclockwise (90 degrees)")
             return self.actions.left
+        
+        elif np.array_equal(direction_to_cell, -np.array(f_vec)):
+            # print("Rotate twice")
+            return self.actions.left
 
         else:
             # print("Unexpected state. Cannot determine action.")
@@ -164,26 +194,35 @@ class Planner:
 
 
 
-    # def neighbors_mask(self,cell):
-    #         """Return valid neighbors (up, down, left, right)."""
-    #         directions = [(-1, 0), (1, 0), (0, -1), (0, 1)]
-    #         result = []
-    #         for d in directions:
-    #             neighbor = (cell[0] + d[0], cell[1] + d[1])
+    def neighbors_mask(self,cell):
+            """Return valid neighbors (up, down, left, right)."""
+            directions = [(-1, 0), (1, 0), (0, -1), (0, 1)]
+            result = []
+            for d in directions:
+                neighbor = (cell[0] + d[0], cell[1] + d[1])
 
-    #             if 0 <= neighbor[0] < len(self.vis_mask[0]) and 0 <= neighbor[1] < len(self.vis_mask[1]):  #Bound check for cell
-    #                 result.append(neighbor)
-    #         return result
+                if 0 <= neighbor[0] < len(self.vis_mask[0]) and 0 <= neighbor[1] < len(self.vis_mask[1]):  #Bound check for cell
+                    result.append(neighbor)
+            return result
         
-    # def find_frontiers(self):
-    #     frontiers = []
+    def find_frontiers(self):
+        
 
-    #     rows, cols = self.vis_mask.shape
-    #     for r in range(rows):
-    #         for c in range(cols):
-    #             if self.vis_mask[r, c] == 0:  # Unseen cell
-    #                 neighbors = self.neighbors_mask((c, r))
-    #                 for nr, nc in neighbors:
-    #                     if self.vis_mask[nr, nc] == 1:  # Adjacent to seen cell
+        rows, cols = self.vis_mask.shape
+        for r in range(rows):
+            for c in range(cols):
+                if not self.vis_mask[r, c]:
+                    unseen_cell = (r, c) #remeber self.vis_mask has rows and columns inverted compared to visual render
+                    # print(f"Checking unseen cell {unseen_cell}")
+                    neighbors = self.neighbors_mask(unseen_cell)
+                    # print(f"unseen cell neighbours are {neighbors}")
+                    for nr, nc in neighbors:
+                        # print((nr, nc))
+                        if self.vis_mask[nr, nc] == 1 :  # Adjacent to seen cell
+                            # print(f"This neighbours have been seen {(nr, nc)}")
+                            # print(f"frontier cell {unseen_cell}")
+                            return self.move_to_target(unseen_cell)
 
-    #                         return self.move_to_target((c, r))
+        print("Explored all env!")
+        return self.actions.done
+        

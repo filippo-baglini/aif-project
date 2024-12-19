@@ -40,10 +40,9 @@ if __name__ == "__main__":
         bot = Bot(env)
         max_steps = 100
 
-        mission = bot.mission
   
         for i in range (max_steps):
-            # time.sleep(2)
+            # time.sleep(1)
             action = bot.take_action(env)  # Call the test function
             
             obs, reward, terminated, truncated, info = env.step(action)
@@ -51,7 +50,7 @@ if __name__ == "__main__":
             if terminated:
                 print(reward)
                 break
-
+            # time.sleep(100)
             env.render()
         env.close()
 
