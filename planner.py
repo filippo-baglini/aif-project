@@ -79,11 +79,10 @@ class Planner:
         Returns the best path as a list of (x, y) tuples or None if no path exists.
         """
 
-        
-
         # Priority queue for open set
         open_set = []
         heapq.heappush(open_set, (0, self.pos))  # (f-score, cell)
+
 
         # g-scores (costs to reach each cell)
         g_score = {self.pos: 0}
@@ -92,6 +91,7 @@ class Planner:
         came_from = {}
 
         while open_set:
+            
             # Pop the cell with the lowest f-score
             current_f, current = heapq.heappop(open_set)
 
@@ -108,25 +108,30 @@ class Planner:
             # Explore neighbors
             for neighbor in self.neighbors(current):
 
-                # Check if a better direction is already faced (this is where your rotation logic applies)
-                direction_to_cell = (neighbor[0] - current[0], neighbor[1] - current[1])
-                if np.array_equal(direction_to_cell, np.array(self.f_vec)):
-                    # No rotation needed, just moving forward
-                    tentative_g = g_score[current] + 1  # Moving forward
-                elif np.array_equal(direction_to_cell, -np.array(self.f_vec)):
-                    tentative_g =  g_score[current] + 3
+                if isinstance(self.vis_obs[neighbor[0],neighbor[1]], tuple) and (neighbor[0],neighbor[1]) != target:
+                        continue
                 else:
-                    # Rotation + move forward (rotate 90 degrees)
-                    tentative_g = g_score[current] + 2  # Rotate and move
+                    # Check if a better direction is already faced (this is where your rotation logic applies)
+                    direction_to_cell = (neighbor[0] - current[0], neighbor[1] - current[1])
+                    if np.array_equal(direction_to_cell, np.array(self.f_vec)):
+                        # No rotation needed, just moving forward
+                        tentative_g = g_score[current] + 1  # Moving forward
+                    elif np.array_equal(direction_to_cell, -np.array(self.f_vec)):
+                        #cell behind us, 2 rotaton and 1 forward
+                        tentative_g =  g_score[current] + 3
+                    else:
+                        # Rotation + move forward (rotate 90 degrees)
+                        tentative_g = g_score[current] + 2  # Rotate and move
 
-                if neighbor not in g_score or tentative_g < g_score[neighbor]:
-                    # Update g-score and f-score
-                    g_score[neighbor] = tentative_g
-                    f_score = tentative_g + manhattan_distance(neighbor, target)
-                    heapq.heappush(open_set, (f_score, neighbor))
-                    came_from[neighbor] = current
+                    if neighbor not in g_score or tentative_g < g_score[neighbor]:
+                        # Update g-score and f-score
+                        g_score[neighbor] = tentative_g
+                        f_score = tentative_g + manhattan_distance(neighbor, target)
+                        heapq.heappush(open_set, (f_score, neighbor))
+                        came_from[neighbor] = current
 
         # No path found
+        print("Path not found")
         return None
     
     def neighbors(self,cell):
@@ -135,10 +140,7 @@ class Planner:
             result = []
             for d in directions:
                 neighbor = (cell[0] + d[0], cell[1] + d[1])
-                if isinstance(self.vis_obs[cell[0], cell[1]], tuple):
-                    continue
-                    # if self.vis_obs[cell[0], cell[1]][0] != 5 or self.vis_obs[cell[0], cell[1]][0] != 6 :
-                    #     continue
+                
                 if 0 <= neighbor[0] < len(self.vis_mask[0]) and 0 <= neighbor[1] < len(self.vis_mask[1]):  #Bound check for cell
                     result.append(neighbor)
             return result
@@ -156,7 +158,7 @@ class Planner:
             self.path = self.a_star_search(target)
             self.target = target
 
-
+        # print(self.path)
         # Iterate through the path
         cell_pos = self.path[0]
         pos = self.pos
@@ -192,37 +194,18 @@ class Planner:
             # print("Unexpected state. Cannot determine action.")
             return self.actions.done
 
-
-
-    def neighbors_mask(self,cell):
-            """Return valid neighbors (up, down, left, right)."""
-            directions = [(-1, 0), (1, 0), (0, -1), (0, 1)]
-            result = []
-            for d in directions:
-                neighbor = (cell[0] + d[0], cell[1] + d[1])
-
-                if 0 <= neighbor[0] < len(self.vis_mask[0]) and 0 <= neighbor[1] < len(self.vis_mask[1]):  #Bound check for cell
-                    result.append(neighbor)
-            return result
-        
     def find_frontiers(self):
-        
-
         rows, cols = self.vis_mask.shape
         for r in range(rows):
             for c in range(cols):
                 if not self.vis_mask[r, c]:
                     unseen_cell = (r, c) #remeber self.vis_mask has rows and columns inverted compared to visual render
                     # print(f"Checking unseen cell {unseen_cell}")
-                    neighbors = self.neighbors_mask(unseen_cell)
+                    neighbors = self.neighbors(unseen_cell)
                     # print(f"unseen cell neighbours are {neighbors}")
                     for nr, nc in neighbors:
-                        # print((nr, nc))
                         if self.vis_mask[nr, nc] == 1 :  # Adjacent to seen cell
-                            # print(f"This neighbours have been seen {(nr, nc)}")
-                            # print(f"frontier cell {unseen_cell}")
                             return self.move_to_target(unseen_cell)
 
         print("Explored all env!")
         return self.actions.done
-        
