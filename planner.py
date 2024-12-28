@@ -25,6 +25,12 @@ class Planner:
             shape=(env.unwrapped.width, env.unwrapped.height), dtype=object
         )
 
+        for i in range(env.unwrapped.width):
+            for j in range(env.unwrapped.height):
+                self.vis_obs[i, j] = (0, 0, 0)
+        
+        
+
         self.mission = env.unwrapped.mission
         self.actions = env.unwrapped.actions
 
@@ -108,9 +114,10 @@ class Planner:
             # Explore neighbors
             for neighbor in self.neighbors(current):
 
-                if isinstance(self.vis_obs[neighbor[0],neighbor[1]], tuple) and (neighbor[0],neighbor[1]) != target:
+                if  self.vis_obs[neighbor[0], neighbor[1]][0] != 1  and self.vis_obs[neighbor[0], neighbor[1]][0] != 0 and self.vis_obs[neighbor[0], neighbor[1]][0] != 4 and (neighbor[0],neighbor[1]) != target:
                         continue
                 else:
+                    # print(neighbor)
                     # Check if a better direction is already faced (this is where your rotation logic applies)
                     direction_to_cell = (neighbor[0] - current[0], neighbor[1] - current[1])
                     if np.array_equal(direction_to_cell, np.array(self.f_vec)):
@@ -172,11 +179,22 @@ class Planner:
 
         # Determine the action based on the direction
         if np.array_equal(direction_to_cell, np.array(f_vec)):
-            # print(f"Move forward to {cell_pos}")
-            if isinstance(self.vis_obs[cell_pos[0], cell_pos[1]], tuple):
-                return self.actions.pickup  # Interact with objects if necessary
-            self.path.pop(0) #Pop cell from path only if agent moved forward in it
-            return self.actions.forward
+            if self.vis_obs[cell_pos[0], cell_pos[1]][0] == 4 and self.vis_obs[cell_pos[0], cell_pos[1]][2] == 1:
+                print("Open door")
+                return self.actions.toggle
+            elif self.vis_obs[cell_pos[0], cell_pos[1]][0] == 5:
+                print("Pick up key")
+                return self.actions.pickup
+            elif self.vis_obs[cell_pos[0], cell_pos[1]][0] == 6:
+                print("Pick up ball")
+                return self.actions.pickup
+            elif self.vis_obs[cell_pos[0], cell_pos[1]][0] == 7:  
+                print("Pick up box")
+                return self.actions.pickup
+            else:          
+                # print(f"Move forward to {cell_pos}")
+                self.path.pop(0) #Pop cell from path only if agent moved forward in it
+                return self.actions.forward
 
         elif np.array_equal(direction_to_cell, np.array(r_dir)):
             # print("Rotate clockwise (90 degrees)")
@@ -204,8 +222,12 @@ class Planner:
                     neighbors = self.neighbors(unseen_cell)
                     # print(f"unseen cell neighbours are {neighbors}")
                     for nr, nc in neighbors:
-                        if self.vis_mask[nr, nc] == 1 :  # Adjacent to seen cell
-                            return self.move_to_target(unseen_cell)
+                        if  self.vis_mask[nr, nc] == 1:  # Adjacent to seen cell
+                            if self.vis_obs[nr, nc][0]  != 2: #Dont move towards wall
+                            #     # print(self.vis_obs[nr, nc][0])
+                                print(unseen_cell)
+                            #     # print(f"Checking unseen cell {unseen_cell}")
+                                return self.move_to_target(unseen_cell)
 
         print("Explored all env!")
         return self.actions.done

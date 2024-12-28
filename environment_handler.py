@@ -31,11 +31,10 @@ def _process_obs(env, agent_vis_mask, agent_vis_obs):
                 # self.vis_type [abs_i, abs_j]
                 
                 if obs_grid.get(vis_i, vis_j) == None:
-                    agent_vis_obs[abs_i, abs_j] = 1
+                    agent_vis_obs[abs_i, abs_j] = (1, 0, 0)
                 else:
                     agent_vis_obs[abs_i, abs_j] = obs_grid.get(vis_i, vis_j).encode()
                 # print(obj)
-
         rotated_mask = agent_vis_mask.T[:, ::-1]
         specular_mask = rotated_mask[:, ::-1]
 

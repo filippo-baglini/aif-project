@@ -21,16 +21,10 @@ class Bot:
         # Check if the goal is visible
         goal_pos = self.plan.look_for_goal()  # Returns the goal's position if visible, else None
         if goal_pos is None:
-            print("Goal not visible, exploring env..")
+            # print("Goal not visible, exploring env..")
             
             return self.plan.find_frontiers() # Rotate left to explore
 
         else:
-            print("Goal Found!")
+            # print("Goal Found!")
             return self.plan.move_to_target(goal_pos)
-
-
-
-
-
-
