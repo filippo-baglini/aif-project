@@ -38,7 +38,7 @@ if __name__ == "__main__":
         agen_view_size = env.unwrapped.agent_view_size
 
         bot = Bot(env)
-        max_steps = 100
+        max_steps = 240
 
   
         for i in range (max_steps):

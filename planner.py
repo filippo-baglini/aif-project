@@ -41,6 +41,8 @@ class Planner:
 
         self.test = []
 
+        self.carrying = False
+
     def __call__(self):
 
         pos = self.env.unwrapped.agent_pos
@@ -101,6 +103,9 @@ class Planner:
             # Pop the cell with the lowest f-score
             current_f, current = heapq.heappop(open_set)
 
+            if(self.vis_obs[current] == 5 or self.vis_obs[current] == 6 or self.vis_obs[current] == 7):
+                self.carrying = True
+
             # Goal reached
             if current == target:
                 # Reconstruct path
@@ -114,21 +119,34 @@ class Planner:
             # Explore neighbors
             for neighbor in self.neighbors(current):
 
-                if  self.vis_obs[neighbor[0], neighbor[1]][0] != 1  and self.vis_obs[neighbor[0], neighbor[1]][0] != 0 and self.vis_obs[neighbor[0], neighbor[1]][0] != 4 and (neighbor[0],neighbor[1]) != target:
-                        continue
+                # if  self.vis_obs[neighbor[0], neighbor[1]][0] != 1  and self.vis_obs[neighbor[0], neighbor[1]][0] != 0 and self.vis_obs[neighbor[0], neighbor[1]][0] != 4 and (neighbor[0],neighbor[1]) != target:
+                #         continue
+                if (self.vis_obs[neighbor[0], neighbor[1]][0] == 2 or self.vis_obs[neighbor[0], neighbor[1]][0] == 9):
+                    continue
+                elif (self.carrying and self.vis_obs[neighbor[0], neighbor[1]][0] != 1  and self.vis_obs[neighbor[0], neighbor[1]][0] != 0 and self.vis_obs[neighbor[0], neighbor[1]][0] != 4 and (neighbor[0],neighbor[1]) != target):
+                    continue
                 else:
                     # print(neighbor)
                     # Check if a better direction is already faced (this is where your rotation logic applies)
                     direction_to_cell = (neighbor[0] - current[0], neighbor[1] - current[1])
                     if np.array_equal(direction_to_cell, np.array(self.f_vec)):
+                        if(self.vis_obs[neighbor[0], neighbor[1]][0] == 5 or self.vis_obs[neighbor[0], neighbor[1]][0] == 6 or self.vis_obs[neighbor[0], neighbor[1]][0] == 7):
+                            tentative_g = g_score[current] + 2 #Pick up the item and then move forward
+                        else:
                         # No rotation needed, just moving forward
-                        tentative_g = g_score[current] + 1  # Moving forward
+                            tentative_g = g_score[current] + 1  # Moving forward
                     elif np.array_equal(direction_to_cell, -np.array(self.f_vec)):
+                        if(self.vis_obs[neighbor[0], neighbor[1]][0] == 5 or self.vis_obs[neighbor[0], neighbor[1]][0] == 6 or self.vis_obs[neighbor[0], neighbor[1]][0] == 7):
+                            tentative_g = g_score[current] + 4
                         #cell behind us, 2 rotaton and 1 forward
-                        tentative_g =  g_score[current] + 3
+                        else:
+                            tentative_g =  g_score[current] + 3
                     else:
+                        if(self.vis_obs[neighbor[0], neighbor[1]][0] == 5 or self.vis_obs[neighbor[0], neighbor[1]][0] == 6 or self.vis_obs[neighbor[0], neighbor[1]][0] == 7):
+                            tentative_g = g_score[current] + 3
                         # Rotation + move forward (rotate 90 degrees)
-                        tentative_g = g_score[current] + 2  # Rotate and move
+                        else:
+                            tentative_g = g_score[current] + 2  # Rotate and move
 
                     if neighbor not in g_score or tentative_g < g_score[neighbor]:
                         # Update g-score and f-score
@@ -184,12 +202,15 @@ class Planner:
                 return self.actions.toggle
             elif self.vis_obs[cell_pos[0], cell_pos[1]][0] == 5:
                 print("Pick up key")
+                self.carrying = True
                 return self.actions.pickup
             elif self.vis_obs[cell_pos[0], cell_pos[1]][0] == 6:
                 print("Pick up ball")
+                self.carrying = True
                 return self.actions.pickup
             elif self.vis_obs[cell_pos[0], cell_pos[1]][0] == 7:  
                 print("Pick up box")
+                self.carrying = True
                 return self.actions.pickup
             else:          
                 # print(f"Move forward to {cell_pos}")
@@ -214,20 +235,30 @@ class Planner:
 
     def find_frontiers(self):
         rows, cols = self.vis_mask.shape
+        unseen_cells = []
+        min_distance = 999
         for r in range(rows):
             for c in range(cols):
                 if not self.vis_mask[r, c]:
                     unseen_cell = (r, c) #remeber self.vis_mask has rows and columns inverted compared to visual render
-                    # print(f"Checking unseen cell {unseen_cell}")
-                    neighbors = self.neighbors(unseen_cell)
-                    # print(f"unseen cell neighbours are {neighbors}")
-                    for nr, nc in neighbors:
-                        if  self.vis_mask[nr, nc] == 1:  # Adjacent to seen cell
-                            if self.vis_obs[nr, nc][0]  != 2: #Dont move towards wall
-                            #     # print(self.vis_obs[nr, nc][0])
-                                print(unseen_cell)
-                            #     # print(f"Checking unseen cell {unseen_cell}")
-                                return self.move_to_target(unseen_cell)
+                    unseen_cells.append(unseen_cell)
+        for cell in unseen_cells:
+            distance = manhattan_distance(self.pos, cell)
+            if distance < min_distance:
+                min_distance = distance
+                target = cell
+        return self.move_to_target(target)
+
+                    # # print(f"Checking unseen cell {unseen_cell}")
+                    # neighbors = self.neighbors(unseen_cell)
+                    # # print(f"unseen cell neighbours are {neighbors}")
+                    # for nr, nc in neighbors:
+                    #     if  self.vis_mask[nr, nc] == 1:  # Adjacent to seen cell
+                    #         if self.vis_obs[nr, nc][0]  != 2: #Dont move towards wall
+                    #         #     # print(self.vis_obs[nr, nc][0])
+                    #             print(unseen_cell)
+                    #         #     # print(f"Checking unseen cell {unseen_cell}")
+                    #             return self.move_to_target(unseen_cell)
 
         print("Explored all env!")
         return self.actions.done
