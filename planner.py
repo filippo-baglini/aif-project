@@ -29,19 +29,18 @@ class Planner:
             for j in range(env.unwrapped.height):
                 self.vis_obs[i, j] = (0, 0, 0)
         
-        
-
-        self.mission = env.unwrapped.mission
+        self.mission = env.unwrapped.instrs
         self.actions = env.unwrapped.actions
 
-        self.goal_type, self.goal_color = understand_goal(self.mission)
+        self.goal_type, self.goal_color, self.goal_lock = understand_goal(self.mission)
 
         self.target = None
         self.path = []
-
+        #self.actions_path = []
         self.test = []
 
         self.carrying = False
+        self.action_list = [self.actions.left, self.actions.drop, self.actions.right]
 
     def __call__(self):
 
@@ -55,15 +54,23 @@ class Planner:
         
 
     def look_for_goal(self):
-
+        
+        goals = []
+        min_distance = 999
+        best_goal = None
         for row_index, row in enumerate(self.vis_obs):
             for col_index, element in enumerate(row):
                 if isinstance(element, tuple):
                     if element[0] == self.goal_type and element[1] == self.goal_color:
                         # self.goal_pos = (row_index, col_index)
-
-                        return (row_index, col_index)
-        return None
+                        goals.append((row_index, col_index))
+                        #return (row_index, col_index)
+        for goal in goals:
+            distance = manhattan_distance(self.pos, goal)
+            if (distance < min_distance):
+                min_distance = distance
+                best_goal = goal
+        return best_goal
 
     def look_for_door(self):
         for row_index, row in enumerate(self.vis_obs):
@@ -103,8 +110,8 @@ class Planner:
             # Pop the cell with the lowest f-score
             current_f, current = heapq.heappop(open_set)
 
-            if(self.vis_obs[current] == 5 or self.vis_obs[current] == 6 or self.vis_obs[current] == 7):
-                self.carrying = True
+            # if(self.vis_obs[current] == 5 or self.vis_obs[current] == 6 or self.vis_obs[current] == 7):
+            #     self.carrying = True
 
             # Goal reached
             if current == target:
@@ -122,6 +129,7 @@ class Planner:
                 # if  self.vis_obs[neighbor[0], neighbor[1]][0] != 1  and self.vis_obs[neighbor[0], neighbor[1]][0] != 0 and self.vis_obs[neighbor[0], neighbor[1]][0] != 4 and (neighbor[0],neighbor[1]) != target:
                 #         continue
                 if (self.vis_obs[neighbor[0], neighbor[1]][0] == 2 or self.vis_obs[neighbor[0], neighbor[1]][0] == 9):
+                    #print("WALL ON PATH, PATH NOT CONSIDERED")
                     continue
                 elif (self.carrying and self.vis_obs[neighbor[0], neighbor[1]][0] != 1  and self.vis_obs[neighbor[0], neighbor[1]][0] != 0 and self.vis_obs[neighbor[0], neighbor[1]][0] != 4 and (neighbor[0],neighbor[1]) != target):
                     continue
@@ -202,14 +210,23 @@ class Planner:
                 return self.actions.toggle
             elif self.vis_obs[cell_pos[0], cell_pos[1]][0] == 5:
                 print("Pick up key")
+                # if (self.carrying):
+                #     return self.put_down()
+                print(f"CARRYING: {self.carrying}")
                 self.carrying = True
                 return self.actions.pickup
             elif self.vis_obs[cell_pos[0], cell_pos[1]][0] == 6:
                 print("Pick up ball")
+                # if (self.carrying):
+                #     return self.put_down()
+                print(f"CARRYING: {self.carrying}")
                 self.carrying = True
                 return self.actions.pickup
             elif self.vis_obs[cell_pos[0], cell_pos[1]][0] == 7:  
                 print("Pick up box")
+                # if (self.carrying):
+                #     return self.put_down()
+                print(f"CARRYING: {self.carrying}")
                 self.carrying = True
                 return self.actions.pickup
             else:          
@@ -234,19 +251,27 @@ class Planner:
             return self.actions.done
 
     def find_frontiers(self):
+        # if (len(self.path) != 0):
+        #     return self.move_to_target(self.target)
         rows, cols = self.vis_mask.shape
         unseen_cells = []
         min_distance = 999
         for r in range(rows):
             for c in range(cols):
                 if not self.vis_mask[r, c]:
-                    unseen_cell = (r, c) #remeber self.vis_mask has rows and columns inverted compared to visual render
-                    unseen_cells.append(unseen_cell)
+                    neighbors = self.neighbors([r, c])
+                    for nr, nc in neighbors:
+                        if  self.vis_mask[nr, nc] == 1:  # Adjacent to seen cell
+                            if self.vis_obs[nr, nc][0] != 2: #Dont move towards wall
+                                unseen_cell = (r, c) #remeber self.vis_mask has rows and columns inverted compared to visual render
+                                unseen_cells.append(unseen_cell)
+                                break
         for cell in unseen_cells:
             distance = manhattan_distance(self.pos, cell)
             if distance < min_distance:
                 min_distance = distance
                 target = cell
+        #print(f"target cell of find frontiers: {target}")
         return self.move_to_target(target)
 
                     # # print(f"Checking unseen cell {unseen_cell}")
@@ -261,4 +286,19 @@ class Planner:
                     #             return self.move_to_target(unseen_cell)
 
         print("Explored all env!")
+        return self.actions.done
+
+    def put_down(self):
+        # if self.started_action:
+        #     self.started_action = False
+        #     self.carrying = False
+        #     return self.actions.drop
+        # self.started_action = True
+        # return self.actions.left
+        if (len(self.action_list) != 0):
+            action = self.action_list.pop(0)
+            print(action)
+            return (action)
+        self.carrying = False
+        self.action_list = [self.actions.left, self.actions.drop, self.actions.right]
         return self.actions.done

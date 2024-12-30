@@ -4,6 +4,7 @@ from bot import Bot
 from goal_parser import *
 import time
 from minigrid.core.constants import OBJECT_TO_IDX, COLOR_TO_IDX
+from minigrid.envs.babyai.core.verifier import *
 
 # print(OBJECT_TO_IDX)
 # print(COLOR_TO_IDX)
@@ -23,6 +24,18 @@ for k_i in gym.envs.registry.keys():
         if k_i not in broken_bonus_envs:
             babyai_envs.append(k_i)
 
+# for env_id in babyai_envs:
+#     env = gym.make(env_id, agent_pov = False)
+#     env.reset()
+#     instr = env.unwrapped.instrs
+#     if isinstance(instr, BeforeInstr) or isinstance(instr, AndInstr):
+#         print(instr.instr_b, instr.instr_a)
+#     elif isinstance(instr, AfterInstr):
+#         print(instr.instr_a, instr.instr_b)
+#     else:
+#         print(instr)
+#     env.close()
+
 if __name__ == "__main__":
 
     for env_id in babyai_envs:  # Loop through all environments
@@ -30,6 +43,10 @@ if __name__ == "__main__":
         env = gym.make(env_id, render_mode ="human", agent_pov = False)
         # env = gym.make("BabyAI-Open-v0", render_mode = "human")
         env.reset()  
+
+        # print(env.unwrapped.instrs)
+        # print(env.unwrapped.instrs.desc)
+        # print(type(env.unwrapped.instrs.desc))
 
         width = env.unwrapped.width
         height= env.unwrapped.height
