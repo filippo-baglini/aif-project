@@ -4,6 +4,7 @@ from goal_parser import understand_goal
 from utils import manhattan_distance
 from environment_handler import _process_obs
 import heapq
+import time
 
 class Planner:
 
@@ -32,7 +33,9 @@ class Planner:
         self.mission = env.unwrapped.instrs
         self.actions = env.unwrapped.actions
 
-        self.sub_goals = understand_goal(self, self.mission)
+        self.sub_goals = []
+
+        understand_goal(self, self.mission)
 
         self.target = None
         self.path = []
@@ -50,7 +53,6 @@ class Planner:
         self.r_vec = self.env.unwrapped.right_vec
         self.vis_mask , self.vis_obs = _process_obs(self.env, self.vis_mask, self.vis_obs)
 
-        
 
     def look_for_goal(self, goal_type, goal_color):
         
@@ -71,18 +73,7 @@ class Planner:
                 best_goal = goal
         return best_goal
 
-    def look_for_door(self):
-        for row_index, row in enumerate(self.vis_obs):
-            for col_index, element in enumerate(row):
-                if isinstance(element, tuple):
-                    if element[0] == 4:
-                        return (row_index, col_index)
-        return None
-    
-     
-
-
-    def a_star_search(self, target):
+    def a_star_search(self, target, reason):
         """
         A* search algorithm for a grid.
         
@@ -96,7 +87,6 @@ class Planner:
         # Priority queue for open set
         open_set = []
         heapq.heappush(open_set, (0, self.pos))  # (f-score, cell)
-
 
         # g-scores (costs to reach each cell)
         g_score = {self.pos: 0}
@@ -121,11 +111,14 @@ class Planner:
 
             # Explore neighbors
             for neighbor in self.neighbors(current):
+                if self.step_is_blocked(neighbor) and neighbor != target:
+                    if reason == "PutNext":
+                        continue
 
                 if (self.vis_obs[neighbor[0], neighbor[1]][0] == 2 or self.vis_obs[neighbor[0], neighbor[1]][0] == 9):
                     #print("WALL ON PATH, PATH NOT CONSIDERED")
                     continue
-
+                
                 else:
                     # Check if a better direction is already faced (this is where your rotation logic applies)
                     direction_to_cell = (neighbor[0] - current[0], neighbor[1] - current[1])
@@ -157,6 +150,7 @@ class Planner:
 
         # No path found
         print("Path not found")
+        time.sleep(5000000)
         return None
     
     def neighbors(self,cell):
@@ -170,7 +164,7 @@ class Planner:
                     result.append(neighbor)
             return result
     
-    def move_to_target(self, target):
+    def move_to_target(self, target, reason="GoNextTo"):
         """
         Move the agent along the path returned by A* until the goal is reached.
 
@@ -180,7 +174,8 @@ class Planner:
         # Use A star only if path empty or if new target to goal
         if len(self.path) == 0 or self.target != target:
             # print("USE A STAR")
-            self.path = self.a_star_search(target)
+            print(f"Target: {target}")
+            self.path = self.a_star_search(target, reason)
             self.target = target
 
         
@@ -193,6 +188,7 @@ class Planner:
         pos = self.pos
         f_vec = self.f_vec
         r_dir = self.r_vec
+
 
 
         # Calculate direction to the next cell
@@ -208,10 +204,14 @@ class Planner:
             self.path.pop(0)
             return self.actions.forward
         elif np.array_equal(direction_to_cell, np.array(r_dir)):
+            if self.step_is_blocked(cell_pos) and self.carrying:
+                return "BLOCKED_SIDE"
             # print("Rotate clockwise (90 degrees)")
             return self.actions.right
 
         elif np.array_equal(direction_to_cell, -np.array(r_dir)):
+            if self.step_is_blocked(cell_pos) and self.carrying:
+                return "BLOCKED_SIDE"
             # print("Rotate counterclockwise (90 degrees)")
             return self.actions.left
         
@@ -288,21 +288,36 @@ class Planner:
     #     self.action_list = [self.actions.left, self.actions.drop, self.actions.right]
     #     return self.actions.done
     
-    def find_closest_empty_cell(self):
-        neighbors = self.neighbors(self.pos)
+    def find_closest_empty_cell(self, cell):
+        neighbors = self.neighbors(cell)
+        empty_cell = []
+        empty_cell_distance = []
         for neighbor in neighbors:
             if self.vis_obs[neighbor[0], neighbor[1]][0] == 1:
-                return neighbor
+                empty_cell.append(neighbor)
+                empty_cell_distance.append(manhattan_distance(self.pos, neighbor))
+            
+        for empty in empty_cell:
+            if empty == self.cell_in_front():
+                return empty
 
+        best_cell = None
+        lowest_distance = float("inf")
+        for i, e in enumerate(empty_cell):
+            if empty_cell_distance[i] < lowest_distance:
+                lowest_distance = empty_cell_distance[i]
+                best_cell = e
+
+        if best_cell:
+            return best_cell
 
     def cell_in_front(self):
         return (self.pos[0] + self.f_vec[0], self.pos[1] + self.f_vec[1])
     
     def step_is_blocked(self, cell):
-        for i in range(3,8):
-            if i != 4:
-                if self.vis_obs[cell[0], cell[1]][0] == i:
-                    return True
+        for i in range(5,8):
+            if self.vis_obs[cell[0], cell[1]][0] == i:
+                return True
         return False
     def step_is_door(self, cell):
         if self.vis_obs[cell[0], cell[1]][0] == 4 and self.vis_obs[cell[0], cell[1]][2] == 1:
@@ -318,10 +333,10 @@ class Planner:
             action = current_subgoal()
             
             if action is self.actions.done:
-                print("Subgoal completed")
+                # print("Subgoal completed")
                 action = self.execute_subgoals()
 
-            print(f"returning action: {action}")
+            # print(f"returning action: {action}")
             return action
 
         else:

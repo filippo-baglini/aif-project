@@ -20,12 +20,27 @@ class GoNextToSubgoal(Subgoal):
             self.planner.sub_goals.insert(0, ExploreSubgoal(self.planner, self.target, self.reason))
             return self.planner.actions.done
 
-        self.action = self.planner.move_to_target(self.target_pos)
-        print(self.action)
+        if self.reason is "PutNext":
+            target_cell = self.planner.find_closest_empty_cell(self.target_pos)
+            self.action = self.planner.move_to_target(target_cell, "PutNext")
+        elif self.reason is "PickUp":
+            self.action = self.planner.move_to_target(self.target_pos, "PickUp")
+
+        else:
+            self.action = self.planner.move_to_target(self.target_pos, "GoNextTo")
+
+        
+
         if self.action == "BLOCKED":
-            self.planner.sub_goals.insert(0, PickupSubgoal(self.planner))
+            self.planner.sub_goals.insert(0, PickupSubgoal(self.planner, self.target))
 
             return self.planner.actions.done
+        
+        if self.action == "BLOCKED_SIDE":
+            self.planner.sub_goals.insert(0, PickupSubgoal(self.planner, self.target))
+
+            return self.planner.actions.done
+        
 
         if self.action == "OPEN DOOR":
             self.planner.sub_goals.insert(0, OpenSubgoal(self.planner))
@@ -48,17 +63,19 @@ class OpenSubgoal(Subgoal):
         return action
     
 class PickupSubgoal(Subgoal):
-    def __init__(self, planner):
+    def __init__(self, planner, target):
         super().__init__(planner)
+        self.target = target
+
     def __call__(self):
         if self.planner.carrying:
-            self.target_pos = self.planner.cell_in_front()
-            empty_cell = self.planner.find_closest_empty_cell()
+            
+            empty_cell = self.planner.find_closest_empty_cell(self.planner.pos)
 
-            print("EMPTY CELL", empty_cell) 
-            print("TARGET POS", self.target_pos)
+            if empty_cell is None:
+                return self.planner.actions.left
 
-            self.planner.sub_goals.insert(0, GoNextToSubgoal(self.planner, None, "Drop", self.target_pos))
+            self.planner.sub_goals.insert(0, GoNextToSubgoal(self.planner, self.target))
             self.planner.sub_goals.insert(0, DropSubgoal(self.planner))
             self.planner.sub_goals.insert(0, GoNextToSubgoal(self.planner, None, "Drop", empty_cell))
             return self.planner.actions.done
@@ -105,7 +122,12 @@ class ExploreSubgoal(Subgoal):
                 self.action = self.planner.move_to_target(self.frontier)
 
                 if self.action == "BLOCKED":
-                    self.planner.sub_goals.insert(0, PickupSubgoal(self.planner))
+                    self.planner.sub_goals.insert(0, PickupSubgoal(self.planner, self.target))
+
+                    return self.planner.actions.done
+                
+                if self.action == "BLOCKED_SIDE":
+                    self.planner.sub_goals.insert(0, PickupSubgoal(self.planner, self.target))
 
                     return self.planner.actions.done
 
