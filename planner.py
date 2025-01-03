@@ -32,11 +32,10 @@ class Planner:
         self.mission = env.unwrapped.instrs
         self.actions = env.unwrapped.actions
 
-        self.goal_type, self.goal_color, self.goal_lock = understand_goal(self.mission)
+        self.sub_goals = understand_goal(self, self.mission)
 
         self.target = None
         self.path = []
-        #self.actions_path = []
         self.test = []
 
         self.carrying = False
@@ -53,7 +52,7 @@ class Planner:
 
         
 
-    def look_for_goal(self):
+    def look_for_goal(self, goal_type, goal_color):
         
         goals = []
         min_distance = 999
@@ -61,7 +60,7 @@ class Planner:
         for row_index, row in enumerate(self.vis_obs):
             for col_index, element in enumerate(row):
                 if isinstance(element, tuple):
-                    if element[0] == self.goal_type and element[1] == self.goal_color:
+                    if element[0] == goal_type and element[1] == goal_color:
                         # self.goal_pos = (row_index, col_index)
                         goals.append((row_index, col_index))
                         #return (row_index, col_index)
@@ -110,9 +109,6 @@ class Planner:
             # Pop the cell with the lowest f-score
             current_f, current = heapq.heappop(open_set)
 
-            # if(self.vis_obs[current] == 5 or self.vis_obs[current] == 6 or self.vis_obs[current] == 7):
-            #     self.carrying = True
-
             # Goal reached
             if current == target:
                 # Reconstruct path
@@ -126,15 +122,11 @@ class Planner:
             # Explore neighbors
             for neighbor in self.neighbors(current):
 
-                # if  self.vis_obs[neighbor[0], neighbor[1]][0] != 1  and self.vis_obs[neighbor[0], neighbor[1]][0] != 0 and self.vis_obs[neighbor[0], neighbor[1]][0] != 4 and (neighbor[0],neighbor[1]) != target:
-                #         continue
                 if (self.vis_obs[neighbor[0], neighbor[1]][0] == 2 or self.vis_obs[neighbor[0], neighbor[1]][0] == 9):
                     #print("WALL ON PATH, PATH NOT CONSIDERED")
                     continue
-                elif (self.carrying and self.vis_obs[neighbor[0], neighbor[1]][0] != 1  and self.vis_obs[neighbor[0], neighbor[1]][0] != 0 and self.vis_obs[neighbor[0], neighbor[1]][0] != 4 and (neighbor[0],neighbor[1]) != target):
-                    continue
+
                 else:
-                    # print(neighbor)
                     # Check if a better direction is already faced (this is where your rotation logic applies)
                     direction_to_cell = (neighbor[0] - current[0], neighbor[1] - current[1])
                     if np.array_equal(direction_to_cell, np.array(self.f_vec)):
@@ -191,7 +183,11 @@ class Planner:
             self.path = self.a_star_search(target)
             self.target = target
 
-        # print(self.path)
+        
+        # print(f"Position: {self.pos}")
+        # print(f"Target: {target}")
+        # print(f"Path: {self.path}")
+
         # Iterate through the path
         cell_pos = self.path[0]
         pos = self.pos
@@ -202,38 +198,15 @@ class Planner:
         # Calculate direction to the next cell
         direction_to_cell = (cell_pos[0] - pos[0], cell_pos[1] - pos[1])
 
-
-        # Determine the action based on the direction
-        if np.array_equal(direction_to_cell, np.array(f_vec)):
-            if self.vis_obs[cell_pos[0], cell_pos[1]][0] == 4 and self.vis_obs[cell_pos[0], cell_pos[1]][2] == 1:
-                print("Open door")
-                return self.actions.toggle
-            elif self.vis_obs[cell_pos[0], cell_pos[1]][0] == 5:
-                print("Pick up key")
-                # if (self.carrying):
-                #     return self.put_down()
-                print(f"CARRYING: {self.carrying}")
-                self.carrying = True
-                return self.actions.pickup
-            elif self.vis_obs[cell_pos[0], cell_pos[1]][0] == 6:
-                print("Pick up ball")
-                # if (self.carrying):
-                #     return self.put_down()
-                print(f"CARRYING: {self.carrying}")
-                self.carrying = True
-                return self.actions.pickup
-            elif self.vis_obs[cell_pos[0], cell_pos[1]][0] == 7:  
-                print("Pick up box")
-                # if (self.carrying):
-                #     return self.put_down()
-                print(f"CARRYING: {self.carrying}")
-                self.carrying = True
-                return self.actions.pickup
-            else:          
-                # print(f"Move forward to {cell_pos}")
-                self.path.pop(0) #Pop cell from path only if agent moved forward in it
-                return self.actions.forward
-
+        if np.array_equal(direction_to_cell, np.array(f_vec)) and cell_pos != target: #IMPORTANT MISSING CONDITON TO CHECK IF CELL HE NEEDS TO MOVE IS LAST WHICH IS THE TARGET
+            if self.step_is_blocked(cell_pos):
+                return "BLOCKED"
+            
+            if self.step_is_door(cell_pos):
+                return "OPEN DOOR"
+            
+            self.path.pop(0)
+            return self.actions.forward
         elif np.array_equal(direction_to_cell, np.array(r_dir)):
             # print("Rotate clockwise (90 degrees)")
             return self.actions.right
@@ -247,8 +220,33 @@ class Planner:
             return self.actions.left
 
         else:
-            # print("Unexpected state. Cannot determine action.")
+            print("Unexpected state. Cannot determine action.")
             return self.actions.done
+
+    # def find_frontiers(self):
+    #     rows, cols = self.vis_mask.shape
+    #     unseen_cells = []
+    #     min_distance = 999
+    #     for r in range(rows):
+    #         for c in range(cols):
+    #             if not self.vis_mask[r, c]:
+    #                 neighbors = self.neighbors([r, c])
+    #                 for nr, nc in neighbors:
+    #                     if  self.vis_mask[nr, nc] == 1:  # Adjacent to seen cell
+    #                         if self.vis_obs[nr, nc][0] != 2: #Dont move towards wall
+    #                             unseen_cell = (r, c) #remeber self.vis_mask has rows and columns inverted compared to visual render
+    #                             unseen_cells.append(unseen_cell)
+    #                             break
+    #     for cell in unseen_cells:
+    #         distance = manhattan_distance(self.pos, cell)
+    #         if distance < min_distance:
+    #             min_distance = distance
+    #             target = cell
+    #     #print(f"target cell of find frontiers: {target}")
+    #             return target
+
+    #     print("Explored all env!")
+    #     return self.actions.done
 
     def find_frontiers(self):
         # if (len(self.path) != 0):
@@ -257,7 +255,11 @@ class Planner:
         unseen_cells = []
         min_distance = 999
         for r in range(rows):
+            if r == 0 or r == rows - 1:
+                continue
             for c in range(cols):
+                if c == 0 or c == cols - 1:
+                    continue
                 if not self.vis_mask[r, c]:
                     neighbors = self.neighbors([r, c])
                     for nr, nc in neighbors:
@@ -272,33 +274,59 @@ class Planner:
                 min_distance = distance
                 target = cell
         #print(f"target cell of find frontiers: {target}")
-        return self.move_to_target(target)
+        return target
 
-                    # # print(f"Checking unseen cell {unseen_cell}")
-                    # neighbors = self.neighbors(unseen_cell)
-                    # # print(f"unseen cell neighbours are {neighbors}")
-                    # for nr, nc in neighbors:
-                    #     if  self.vis_mask[nr, nc] == 1:  # Adjacent to seen cell
-                    #         if self.vis_obs[nr, nc][0]  != 2: #Dont move towards wall
-                    #         #     # print(self.vis_obs[nr, nc][0])
-                    #             print(unseen_cell)
-                    #         #     # print(f"Checking unseen cell {unseen_cell}")
-                    #             return self.move_to_target(unseen_cell)
+    # def put_down(self):
 
-        print("Explored all env!")
-        return self.actions.done
+    #     # self.path_list = self.find_closest_empty_cell()
 
-    def put_down(self):
-        # if self.started_action:
-        #     self.started_action = False
-        #     self.carrying = False
-        #     return self.actions.drop
-        # self.started_action = True
-        # return self.actions.left
-        if (len(self.action_list) != 0):
-            action = self.action_list.pop(0)
-            print(action)
-            return (action)
-        self.carrying = False
-        self.action_list = [self.actions.left, self.actions.drop, self.actions.right]
-        return self.actions.done
+    #     if (len(self.action_list) != 0):
+    #         action = self.action_list.pop(0)
+    #         print(action)
+    #         return (action)
+    #     self.carrying = False
+    #     self.action_list = [self.actions.left, self.actions.drop, self.actions.right]
+    #     return self.actions.done
+    
+    def find_closest_empty_cell(self):
+        neighbors = self.neighbors(self.pos)
+        for neighbor in neighbors:
+            if self.vis_obs[neighbor[0], neighbor[1]][0] == 1:
+                return neighbor
+
+
+    def cell_in_front(self):
+        return (self.pos[0] + self.f_vec[0], self.pos[1] + self.f_vec[1])
+    
+    def step_is_blocked(self, cell):
+        for i in range(3,8):
+            if i != 4:
+                if self.vis_obs[cell[0], cell[1]][0] == i:
+                    return True
+        return False
+    def step_is_door(self, cell):
+        if self.vis_obs[cell[0], cell[1]][0] == 4 and self.vis_obs[cell[0], cell[1]][2] == 1:
+            return True
+        return False
+
+    def execute_subgoals(self):
+        print(f"Subgoals: {self.sub_goals}")
+        if self.sub_goals:
+            current_subgoal = self.sub_goals[0]
+            print(f"Executing subgoal: {current_subgoal}")
+
+            action = current_subgoal()
+            
+            if action is self.actions.done:
+                print("Subgoal completed")
+                action = self.execute_subgoals()
+
+            print(f"returning action: {action}")
+            return action
+
+        else:
+            print("All subgoals completed")
+            return self.actions.done
+                
+
+                    
