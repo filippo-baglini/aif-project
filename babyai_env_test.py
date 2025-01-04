@@ -16,7 +16,6 @@ broken_bonus_envs = {
     "BabyAI-KeyInBox-v0",
 }
 
-
 # get all babyai envs (except the broken ones)
 babyai_envs = []
 for k_i in gym.envs.registry.keys():
@@ -24,50 +23,50 @@ for k_i in gym.envs.registry.keys():
         if k_i not in broken_bonus_envs:
             babyai_envs.append(k_i)
 
-# for env_id in babyai_envs:
-#     env = gym.make(env_id, agent_pov = False)
-#     env.reset()
-#     instr = env.unwrapped.instrs
-#     if isinstance(instr, BeforeInstr) or isinstance(instr, AndInstr):
-#         print(instr.instr_b, instr.instr_a)
-#     elif isinstance(instr, AfterInstr):
-#         print(instr.instr_a, instr.instr_b)
-#     else:
-#         print(instr)
-#     env.close()
+# get all minigrid envs
+minigrid_envs = []
+for k_i in gym.envs.registry.keys():
+    if k_i.split("-")[0] == "MiniGrid":
+        minigrid_envs.append(k_i)
+
+reward_list = []
 
 if __name__ == "__main__":
 
-    for env_id in babyai_envs:  # Loop through all environments
+    for i, env_id in enumerate(babyai_envs): # Loop through all environments
+        if i == 100:
+            break
         print(f"Testing environment: {env_id}")
-        env = gym.make(env_id, render_mode ="human", agent_pov = False)
-        # env = gym.make("BabyAI-Open-v0", render_mode = "human")
-        env.reset()  
-
-        # print(env.unwrapped.instrs)
-        # print(env.unwrapped.instrs.desc)
-        # print(type(env.unwrapped.instrs.desc))
-
-        width = env.unwrapped.width
-        height= env.unwrapped.height
-
-        agent_position = env.unwrapped.agent_pos
-        agen_view_size = env.unwrapped.agent_view_size
+        #env = gym.make(env_id, render_mode ="human", agent_pov = False) #Uncomment to test all the different levels with visuals
+        #env = gym.make(env_id) #Uncomment to test all the different levels without visuals
+        env = gym.make("BabyAI-Unlock-v0", render_mode = "human")
+        
+        env.reset(seed = 0)  
 
         bot = Bot(env)
         max_steps = 240
+        num_steps = 0
 
-  
         for i in range (max_steps):
-            # time.sleep(1)
+            #time.sleep(2)
             action = bot.take_action(env)  # Call the test function
+            if action == "FAILURE":
+                print(f"LIVELLO FALLITO: {env}")
+                break
             
             obs, reward, terminated, truncated, info = env.step(action)
+            num_steps += 1
             
             if terminated:
-                print(reward)
+                print(f"PROVA NUM_STEPS: {num_steps}")
+                reward_list.append((env_id, num_steps))
                 break
-            # time.sleep(100)
+        
             env.render()
         env.close()
-
+    
+    print(reward_list)
+    sum_steps = 0
+    for i in range(len(reward_list)):
+        sum_steps += reward_list[i][1] 
+    print(sum_steps)
