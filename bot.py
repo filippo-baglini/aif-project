@@ -4,6 +4,8 @@ from gymnasium import Env
 
 from entity import Entity
 from planner import Planner
+from minigrid.core.constants import OBJECT_TO_IDX, COLOR_TO_IDX
+from minigrid.envs.babyai.core.verifier import *
 
 class Bot:
 

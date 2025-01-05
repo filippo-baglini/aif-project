@@ -5,6 +5,7 @@ from bot import Bot
 from goal_parser import *
 import time
 from minigrid.core.constants import OBJECT_TO_IDX, COLOR_TO_IDX
+from minigrid.envs.babyai.core.verifier import *
 
 # print(OBJECT_TO_IDX)
 # print(COLOR_TO_IDX)
@@ -15,7 +16,6 @@ broken_bonus_envs = {
     "BabyAI-PutNextS7N4Carrying-v0",
     "BabyAI-KeyInBox-v0",
 }
-
 
 # get all babyai envs (except the broken ones)
 babyai_envs = []
@@ -29,34 +29,54 @@ babyai_envs = ['BabyAI-UnlockPickupDist-v0']
 print(OBJECT_TO_IDX)
 print(COLOR_TO_IDX)
 
+# get all minigrid envs
+minigrid_envs = []
+for k_i in gym.envs.registry.keys():
+    if k_i.split("-")[0] == "MiniGrid":
+        minigrid_envs.append(k_i)
+
+reward_list = []
+
 if __name__ == "__main__":
+    print(len(babyai_envs))
 
-    for env_id in babyai_envs:  # Loop through all environments
+    for i, env_id in enumerate(babyai_envs): # Loop through all environments
+        if i == 150:
+            break
         print(f"Testing environment: {env_id}\n\n")
-        env: Env = gym.make(env_id, render_mode ="human", agent_pov = False)
-        # env = gym.make("BabyAI-Open-v0", render_mode = "human")
-        env.reset()  
+        #env: Env = gym.make(env_id, render_mode ="human", agent_pov = False) #Uncomment to test all the different levels with visuals
+        #env = gym.make(env_id) #Uncomment to test all the different levels without visuals
+        env = gym.make("BabyAI-MiniBossLevel-v0", render_mode = "human")
+        env.reset(seed=2)
 
-        width = env.unwrapped.width
-        height= env.unwrapped.height
-
-        agent_position = env.unwrapped.agent_pos
-        agen_view_size = env.unwrapped.agent_view_size
+        print(env.unwrapped.mission)
 
         bot = Bot(env)
-        max_steps = 100
+        max_steps = 240
+        num_steps = 0
 
-  
         for i in range (max_steps):
             time.sleep(1)
             action = bot.take_action(env)  # Call the test function
+if action == "FAILURE":
+                print(f"LIVELLO FALLITO: {env}")
+                break
 
             obs, reward, terminated, truncated, info = env.step(action)
+num_steps += 1
 
             if terminated:
                 print("Good bye")
+                print(f"PROVA NUM_STEPS: {num_steps}")
+                reward_list.append((env_id, num_steps))
                 break
+
             env.render()
 
         env.close()
 
+    print(reward_list)
+    sum_steps = 0
+    for i in range(len(reward_list)):
+        sum_steps += reward_list[i][1]
+    print(sum_steps)
