@@ -20,8 +20,10 @@ class GoNextToSubgoal(Subgoal):
             self.planner.sub_goals.insert(0, ExploreSubgoal(self.planner, self.target, self.reason))
             return self.planner.actions.done
 
-        if self.reason is "PutNext":
+        if self.reason == "PutNext":
+            print(f"TARGET POS: {self.target_pos}")
             target_cell = self.planner.find_closest_empty_cell(self.target_pos)
+            print(f"TARGET CELL: {target_cell}")
             self.action = self.planner.move_to_target(target_cell, "PutNext")
         # elif self.reason is "PickUp":
         #     self.action = self.planner.move_to_target(self.target_pos, "PickUp")
@@ -32,7 +34,10 @@ class GoNextToSubgoal(Subgoal):
         
 
         if self.action == "BLOCKED":
-            self.planner.sub_goals.insert(0, PickupSubgoal(self.planner, self.target))
+            if self.reason == "PutNext":
+                self.planner.sub_goals.insert(0, PickupSubgoal(self.planner, self.planner.find_closest_empty_cell(self.planner.pos)))
+            else:
+                self.planner.sub_goals.insert(0, PickupSubgoal(self.planner, self.target))
 
             return self.planner.actions.done
         
@@ -68,14 +73,17 @@ class PickupSubgoal(Subgoal):
         self.target = target
 
     def __call__(self):
+        print(f"TARGET: {self.target}")
         if self.planner.carrying:
+
+            self.planner.sub_goals.pop(0)
             
             empty_cell = self.planner.find_closest_empty_cell(self.planner.pos)
 
             if empty_cell is None:
                 return self.planner.actions.left
 
-            self.planner.sub_goals.insert(0, GoNextToSubgoal(self.planner, self.target))
+            #self.planner.sub_goals.insert(0, GoNextToSubgoal(self.planner, self.target))
             self.planner.sub_goals.insert(0, DropSubgoal(self.planner))
             self.planner.sub_goals.insert(0, GoNextToSubgoal(self.planner, None, "Drop", empty_cell))
             return self.planner.actions.done
@@ -113,7 +121,9 @@ class ExploreSubgoal(Subgoal):
 
     def __call__(self):
         #print("EXPLORING")
-        self.target_pos = self.planner.look_for_goal(self.target[0], self.target[1])
+        #print(self.target)
+        self.target_pos = self.planner.look_for_goal(self.target[0], self.target[1], self.target[2])
+        print(self.target_pos)
         if self.target_pos is None:
             self.frontier = self.planner.find_frontiers()
             if self.frontier is None:

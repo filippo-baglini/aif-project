@@ -28,8 +28,8 @@ def test_bot(env_id):
     allowing us therefore to generate demonstrations.
     """
     # Use the parameter env_id to make the environment
-    env = gym.make(env_id)
-    #env = gym.make(env_id, render_mode="human") # for visual debugging
+    #env = gym.make(env_id)
+    env = gym.make("BabyAI-MiniBossLevel-v0", render_mode="human") # for visual debugging
 
     # reset env
     curr_seed = 0
@@ -38,7 +38,7 @@ def test_bot(env_id):
     fava = 0
     terminated = False
     while not terminated:
-        env.reset(seed=curr_seed)
+        env.reset(seed=1)
         #print (env.observation_space)
 
         # create expert bot

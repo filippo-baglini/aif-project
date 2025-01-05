@@ -14,6 +14,8 @@ def process_desc(desc):
         goal_type = OBJECT_TO_IDX[goal_type] if goal_type is not None else None
         goal_color = COLOR_TO_IDX[goal_color] if goal_color is not None else None
 
+        print(goal_type, goal_color, goal_location)
+
         return [goal_type, goal_color, goal_location]
 
 

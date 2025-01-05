@@ -14,10 +14,11 @@ class Planner:
         pos = env.unwrapped.agent_pos
         self.pos = (pos[0].item(), pos[1].item())
         self.starting_pos = self.pos
+        print(self.starting_pos)
 
         self.f_vec = env.unwrapped.dir_vec
         self.r_vec = env.unwrapped.right_vec
-        #self.starting_compass = (self.f_vec, self.r_vec) #NEXT THING TO DO
+        self.starting_compass = self.f_vec #NEXT THING TO DO
 
         self.vis_mask = np.zeros(shape=(env.unwrapped.width, env.unwrapped.height), dtype=bool)
 
@@ -51,6 +52,8 @@ class Planner:
 
     def look_for_goal(self, goal_type, goal_color, goal_loc = None):
         
+        #print("AAAAAAAAAA")
+        #print(goal_type, goal_color, goal_loc)
         goals = []
         min_distance = 999
         best_goal = None
@@ -61,18 +64,32 @@ class Planner:
                 if isinstance(element, tuple):
                     if goal_color is not None and goal_type is not None:
                         if element[0] == goal_type and element[1] == goal_color:
-                            # if goal_loc is not None: #NEXT THING TO DO
-                                
-                            # else:
+                            if goal_loc is not None: #NEXT THING TO DO
+                                if(self.find_relative_position(goal_loc, row_index, col_index)):
+                                   goals.append((row_index, col_index)) 
+                                #time.sleep(100)    
+                            else:
                                 goals.append((row_index, col_index))
 
                     elif goal_color is None:
                         if element[0] == goal_type:
-                            goals.append((row_index, col_index))
+                            if goal_loc is not None: #NEXT THING TO DO
+                                if (self.find_relative_position(goal_loc, row_index, col_index)):
+                                    goals.append((row_index, col_index))
+                                # print(self.starting_compass)
+                                # time.sleep(100)
+                            else:
+                                goals.append((row_index, col_index))
 
                     elif goal_type is None:
                         if element[0] != 2 and element[1] == goal_color:
-                            goals.append((row_index, col_index))
+                            if goal_loc is not None: #NEXT THING TO DO
+                                if (self.find_relative_position(goal_loc, row_index, col_index)):
+                                    goals.append((row_index, col_index))
+                                # print(self.starting_compass)
+                                # time.sleep(100)
+                            else:
+                                goals.append((row_index, col_index))
 
         for goal in goals:
             distance = manhattan_distance(self.pos, goal)
@@ -119,9 +136,9 @@ class Planner:
 
             # Explore neighbors
             for neighbor in self.neighbors(current):
-                if self.step_is_blocked(neighbor) and neighbor != target:
-                    if reason == "PutNext":
-                        continue
+                # if self.step_is_blocked(neighbor) and neighbor != target:
+                #     if reason == "PutNext":
+                #         continue
 
                 if (self.vis_obs[neighbor[0], neighbor[1]][0] == 2 or self.vis_obs[neighbor[0], neighbor[1]][0] == 9):
                     continue
@@ -276,14 +293,22 @@ class Planner:
         neighbors = self.neighbors(cell)
         empty_cell = []
         empty_cell_distance = []
-        for neighbor in neighbors:
-            if self.vis_obs[neighbor[0], neighbor[1]][0] == 1:
-                empty_cell.append(neighbor)
-                empty_cell_distance.append(manhattan_distance(self.pos, neighbor))
+        for row_index, row in enumerate(self.vis_obs):
+            for col_index, element in enumerate(row):
+                if self.pos == (row_index, col_index):
+                    continue
+                if self.vis_obs[row_index, col_index][0] == 1:
+                    empty_cell.append((row_index, col_index))
+                    empty_cell_distance.append(manhattan_distance(cell, (row_index, col_index)))
+        # for neighbor in neighbors:
+        #     if self.vis_obs[neighbor[0], neighbor[1]][0] == 1:
+        #         empty_cell.append(neighbor)
+        #         empty_cell_distance.append(manhattan_distance(self.pos, neighbor))
             
         for empty in empty_cell:
-            if empty == self.cell_in_front():
-                return empty
+            if empty in neighbors:
+                if empty == self.cell_in_front():
+                    return empty
 
         best_cell = None
         lowest_distance = float("inf")
@@ -307,16 +332,16 @@ class Planner:
                 return True
         return False
     
-    # def step_is_door(self, cell):
-    #     if self.vis_obs[cell[0], cell[1]][0] == 4 and self.vis_obs[cell[0], cell[1]][2] == 1:
-    #         return True
-    #     return False
+    def step_is_door(self, cell):
+        if self.vis_obs[cell[0], cell[1]][0] == 4 and self.vis_obs[cell[0], cell[1]][2] == 1:
+            return True
+        return False
 
     def execute_subgoals(self):
         #print(f"Subgoals: {self.sub_goals}")
         if self.sub_goals:
             current_subgoal = self.sub_goals[0]
-            #print(f"Executing subgoal: {current_subgoal}")
+            print(f"Executing subgoal: {current_subgoal}")
             action = current_subgoal()
             
             if action is self.actions.done:
@@ -329,3 +354,55 @@ class Planner:
         else:
             print("All subgoals completed")
             return self.actions.done
+    
+    def find_relative_position(self, goal_loc, goal_row, goal_col):
+        print("AAAAAAAAAAAAAAa")
+        relative_position = (goal_row - self.starting_pos[0], goal_col - self.starting_pos[1])
+        print(relative_position)
+
+        if (goal_loc == "front"):
+            if (relative_position[1] < 0 and np.array_equal(self.starting_compass, [0, -1])): #front, up
+                return True
+            elif (relative_position[1] > 0 and np.array_equal(self.starting_compass, [0, 1])): #front, down
+                return True
+            elif (relative_position[0] < 0 and np.array_equal(self.starting_compass, [-1, 0])): #front, left
+                return True
+            elif (relative_position[0] > 0 and np.array_equal(self.starting_compass, [1, 0])): #front, right
+                return True
+            return False
+        
+        elif (goal_loc == "behind"):
+            if (relative_position[1] < 0 and np.array_equal(self.starting_compass, [0, 1])): #front, down
+                return True
+            elif (relative_position[1] > 0 and np.array_equal(self.starting_compass, [0, -1])): #front, up
+                return True
+            elif (relative_position[0] < 0 and np.array_equal(self.starting_compass, [1, 0])): #front, right
+                return True
+            elif (relative_position[0] > 0 and np.array_equal(self.starting_compass, [-1, 0])): #front, left
+                return True
+            return False
+        
+        elif (goal_loc == "left"):
+            if (relative_position[0] < 0 and np.array_equal(self.starting_compass, [0, -1])): #front, up
+                return True
+            elif (relative_position[0] > 0 and np.array_equal(self.starting_compass, [0, 1])): #front, down
+                return True
+            elif (relative_position[1] > 0 and np.array_equal(self.starting_compass, [-1, 0])): #front, left
+                return True
+            elif (relative_position[1] < 0 and np.array_equal(self.starting_compass, [1, 0])): #front, right
+                return True
+            return False
+        
+        elif (goal_loc == "right"):
+            print(relative_position[0], relative_position[1])
+            print(self.starting_compass)
+            if (relative_position[0] > 0 and np.array_equal(self.starting_compass, [0, -1])): #front, up
+                return True
+            elif (relative_position[0] < 0 and np.array_equal(self.starting_compass, [0, 1])): #front, down
+                return True
+            elif (relative_position[1] < 0 and np.array_equal(self.starting_compass, [-1, 0])): #front, left
+                return True
+            elif (relative_position[1] > 0 and np.array_equal(self.starting_compass, [1, 0])): #front, right
+                return True
+            print("GOAL DIRECTION NOT FOUND")
+            return False
