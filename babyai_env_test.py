@@ -40,8 +40,8 @@ if __name__ == "__main__":
         print(f"Testing environment: {env_id}")
         #env = gym.make(env_id, render_mode ="human", agent_pov = False) #Uncomment to test all the different levels with visuals
         #env = gym.make(env_id) #Uncomment to test all the different levels without visuals
-        env = gym.make("BabyAI-MiniBossLevel-v0", render_mode = "human")
-        env.reset(seed=2) 
+        env = gym.make("BabyAI-Unlock-v0", render_mode = "human")
+        env.reset(seed=1) 
 
         print(env.unwrapped.mission) 
 
