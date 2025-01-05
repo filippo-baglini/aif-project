@@ -8,20 +8,21 @@ def process_desc(desc):
         goal = desc #extract the goal from the mission information
         goal_type = goal.type
         goal_color = goal.color
-        goal_lock = goal.loc
+        goal_location = goal.loc
 
-        print(goal_type, goal_color, goal_lock)
-        if (goal_lock is None):
-            goal_lock = "open"
+        print(goal_type, goal_color, goal_location)
+        # if (goal_lock is None):
+        #     goal_lock = "open"
 
-        if (goal_color is None):
-            goal_color = "red"
+        # if (goal_color is None):
+        #     goal_color = "red"
+        
 
-        goal_type = OBJECT_TO_IDX[goal_type]
-        goal_color = COLOR_TO_IDX[goal_color]
-        goal_lock = STATE_TO_IDX[goal_lock]
+        goal_type = OBJECT_TO_IDX[goal_type] if goal_type is not None else None
+        goal_color = COLOR_TO_IDX[goal_color] if goal_color is not None else None
+        #goal_location = STATE_TO_IDX[goal_location] if goal_location is not None else None
 
-        return [goal_type, goal_color, goal_lock]
+        return [goal_type, goal_color, goal_location]
 
 
 def understand_goal(plan, instr):
@@ -47,7 +48,7 @@ def understand_goal(plan, instr):
 
 
     elif isinstance(instr, PutNextInstr):     
-        plan.sub_oals.append(GoNextToSubgoal(plan, process_desc(instr.desc_move), reason="PickUp"))
+        plan.sub_goals.append(GoNextToSubgoal(plan, process_desc(instr.desc_move), reason="PickUp"))
         plan.sub_goals.append(PickupSubgoal(plan, process_desc(instr.desc_move)))
         plan.sub_goals.append(GoNextToSubgoal(plan, process_desc(instr.desc_fixed), reason="PutNext"))
         plan.sub_goals.append(DropSubgoal(plan))

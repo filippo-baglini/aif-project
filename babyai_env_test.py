@@ -30,7 +30,7 @@ if __name__ == "__main__":
     for env_id in babyai_envs:  # Loop through all environments
         print(f"Testing environment: {env_id}")
         env = gym.make(env_id, render_mode ="human", agent_pov = False)
-        env = gym.make("BabyAI-GoToSeq-v0", render_mode = "human")
+        env = gym.make("BabyAI-PickupDist-v0", render_mode = "human")
         env.reset()  
 
         width = env.unwrapped.width
@@ -38,8 +38,6 @@ if __name__ == "__main__":
 
         agent_position = env.unwrapped.agent_pos
         agen_view_size = env.unwrapped.agent_view_size
-
-
         bot = Bot(env)
         max_steps = 240
 

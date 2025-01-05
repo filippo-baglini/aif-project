@@ -23,8 +23,8 @@ class GoNextToSubgoal(Subgoal):
         if self.reason is "PutNext":
             target_cell = self.planner.find_closest_empty_cell(self.target_pos)
             self.action = self.planner.move_to_target(target_cell, "PutNext")
-        elif self.reason is "PickUp":
-            self.action = self.planner.move_to_target(self.target_pos, "PickUp")
+        # elif self.reason is "PickUp":
+        #     self.action = self.planner.move_to_target(self.target_pos, "PickUp")
 
         else:
             self.action = self.planner.move_to_target(self.target_pos, "GoNextTo")

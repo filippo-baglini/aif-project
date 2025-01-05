@@ -55,17 +55,24 @@ class Planner:
 
 
     def look_for_goal(self, goal_type, goal_color):
-        
+
         goals = []
         min_distance = 999
         best_goal = None
         for row_index, row in enumerate(self.vis_obs):
             for col_index, element in enumerate(row):
                 if isinstance(element, tuple):
-                    if element[0] == goal_type and element[1] == goal_color:
-                        # self.goal_pos = (row_index, col_index)
-                        goals.append((row_index, col_index))
-                        #return (row_index, col_index)
+                    if goal_color is not None and goal_type is not None:
+                        if element[0] == goal_type and element[1] == goal_color:
+                            # self.goal_pos = (row_index, col_index)
+                            goals.append((row_index, col_index))
+                            #return (row_index, col_index)
+                    elif goal_color is None:
+                        if element[0] == goal_type:
+                            goals.append((row_index, col_index))
+                    elif goal_type is None:
+                        if element[1] == goal_color and element[0] != 2:
+                            goals.append((row_index, col_index))
         for goal in goals:
             distance = manhattan_distance(self.pos, goal)
             if (distance < min_distance):
@@ -201,6 +208,10 @@ class Planner:
             if self.step_is_door(cell_pos):
                 return "OPEN DOOR"
             
+            # if self.carrying:
+            #     prev_cell = self.previous_position()
+            #     self.vis.obs = self.vis_obs[prev_cell[0], prev_cell[1]] = (1, 0, 0)
+            
             self.path.pop(0)
             return self.actions.forward
         elif np.array_equal(direction_to_cell, np.array(r_dir)):
@@ -314,6 +325,9 @@ class Planner:
     def cell_in_front(self):
         return (self.pos[0] + self.f_vec[0], self.pos[1] + self.f_vec[1])
     
+    def previous_position(self):
+        return (self.pos[0] - self.f_vec[0], self.pos[1] - self.f_vec[1])
+    
     def step_is_blocked(self, cell):
         for i in range(5,8):
             if self.vis_obs[cell[0], cell[1]][0] == i:
@@ -323,6 +337,8 @@ class Planner:
         if self.vis_obs[cell[0], cell[1]][0] == 4 and self.vis_obs[cell[0], cell[1]][2] == 1:
             return True
         return False
+
+    
 
     def execute_subgoals(self):
         print(f"Subgoals: {self.sub_goals}")
