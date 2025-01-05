@@ -66,7 +66,7 @@ class Planner:
             for col_index, element in enumerate(row):
                 if isinstance(element, tuple):
                     if element[0] == 5:
-                        keys[element[1]] = Entity(pos=[row_index, col_index], color=element[1])
+                        keys[element[1]] = Entity(pos=(row_index, col_index), color=element[1])
         return keys
 
     def look_for_goal(self):
@@ -180,7 +180,7 @@ class Planner:
         Move the agent along the path returned by A* until the goal is reached.
 
         Parameters:
-            target (list): A list of (x, y) tuples representing the path from A*.
+            target (tuple): A list of (x, y) tuples representing the path from A*.
         """
         # Use A star only if path empty or if new target to goal
         if len(self.path) == 0 or self.target != target:
@@ -248,7 +248,7 @@ class Planner:
                         if  self.vis_mask[nr, nc] == 1:  # Adjacent to seen cell
                             if self.vis_obs[nr, nc][0]  != 2: #Dont move towards wall
                             #     # print(self.vis_obs[nr, nc][0])
-                                print(unseen_cell)
+                            #     print("unseen cell: " + str(unseen_cell))
                             #     # print(f"Checking unseen cell {unseen_cell}")
                                 return self.move_to_target(unseen_cell)
 

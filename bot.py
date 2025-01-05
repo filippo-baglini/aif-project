@@ -14,8 +14,6 @@ class Bot:
         self.env = env
         self.door_found: Optional[Entity] = None
 
-
-
     def take_action(self, env: Env):
 
         #First action is update plan instance
@@ -26,22 +24,30 @@ class Bot:
         if goal_pos is None:
             print("Goal not visible, exploring env..")
             carried_item = env.unwrapped.carrying
+            keys = self.plan.look_for_keys()
+            print("Found keys: {}".format(keys))
 
             if self.door_found is not None:
                 if carried_item is None:
-                    print(f"Searching for key color {self.door_found.color}")
+                    if self.door_found.color in keys:
+                        print("I already have seen the key")
 
-                    key_pos = self.plan.look_for_key(self.door_found.color)
-                    if key_pos is not None:
-                        print("Found key")
-                        return self.plan.move_to_target(key_pos)
+                        key = keys[self.door_found.color]
+                        return self.plan.move_to_target(key.pos)
+
                 else:
+                    print("Going to the door")
                     return self.plan.move_to_target(self.door_found.pos)
 
             door = self.plan.look_for_door()
             if door is not None:
                 self.door_found = Entity(pos=door[1], color=door[0])
                 print(f"Door found: {self.door_found}")
+                if self.door_found.color in keys:
+                    print("I already have seen the key")
+
+                    key = keys[self.door_found.color]
+                    return self.plan.move_to_target(key.pos)
 
             return self.plan.find_frontiers() # Rotate left to explore
 

@@ -1,6 +1,6 @@
 class Entity:
-    def __init__(self, pos: list, color: int):
-        self.pos: list = pos
+    def __init__(self, pos: tuple, color: int):
+        self.pos: tuple = pos
         self.color: int = color
 
     def __repr__(self):
