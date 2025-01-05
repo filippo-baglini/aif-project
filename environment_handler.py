@@ -1,9 +1,10 @@
+
 def _process_obs(env, agent_vis_mask, agent_vis_obs):
         """Parse the contents of an observation/image, update our state,
         rotate the vis_mask to the right, and make it specular."""
 
         obs_grid, vis_mask = env.unwrapped.gen_obs_grid()
-        ##
+
         view_size = env.unwrapped.agent_view_size
         pos = env.unwrapped.agent_pos
         f_vec = env.unwrapped.dir_vec
