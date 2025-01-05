@@ -1,5 +1,7 @@
+
 import numpy as np
 
+from entity import Entity
 from goal_parser import understand_goal
 from utils import manhattan_distance
 from environment_handler import _process_obs
@@ -50,17 +52,29 @@ class Planner:
         self.r_vec = self.env.unwrapped.right_vec
         self.vis_mask , self.vis_obs = _process_obs(self.env, self.vis_mask, self.vis_obs)
 
-        
+    def look_for_key(self, door_color: int):
+        for row_index, row in enumerate(self.vis_obs):
+            for col_index, element in enumerate(row):
+                if isinstance(element, tuple):
+                    if element[0] == 5 and element[1] == door_color:
+                        return row_index, col_index
+        return None
+
+    def look_for_keys(self) -> dict[int, Entity]:
+        keys: dict[int, Entity] = {}
+        for row_index, row in enumerate(self.vis_obs):
+            for col_index, element in enumerate(row):
+                if isinstance(element, tuple):
+                    if element[0] == 5:
+                        keys[element[1]] = Entity(pos=[row_index, col_index], color=element[1])
+        return keys
 
     def look_for_goal(self):
-
         for row_index, row in enumerate(self.vis_obs):
             for col_index, element in enumerate(row):
                 if isinstance(element, tuple):
                     if element[0] == self.goal_type and element[1] == self.goal_color:
-                        # self.goal_pos = (row_index, col_index)
-
-                        return (row_index, col_index)
+                        return row_index, col_index
         return None
 
     def look_for_door(self):
@@ -68,20 +82,20 @@ class Planner:
             for col_index, element in enumerate(row):
                 if isinstance(element, tuple):
                     if element[0] == 4:
-                        return (row_index, col_index)
+                        return element[1], (row_index, col_index)
         return None
-    
-     
+
+
 
 
     def a_star_search(self, target):
         """
         A* search algorithm for a grid.
-        
+
         grid: 2D list representing the environment (0: free space, 1: obstacle).
         start: Tuple (x, y) for the start position.
         goal: Tuple (x, y) for the goal position.
-        
+
         Returns the best path as a list of (x, y) tuples or None if no path exists.
         """
 
@@ -97,7 +111,7 @@ class Planner:
         came_from = {}
 
         while open_set:
-            
+
             # Pop the cell with the lowest f-score
             current_f, current = heapq.heappop(open_set)
 
@@ -112,12 +126,12 @@ class Planner:
                 return path[::-1]  # Reverse the path
 
             # Explore neighbors
-            for neighbor in self.neighbors(current):
-
-                if  self.vis_obs[neighbor[0], neighbor[1]][0] != 1  and self.vis_obs[neighbor[0], neighbor[1]][0] != 0 and self.vis_obs[neighbor[0], neighbor[1]][0] != 4 and (neighbor[0],neighbor[1]) != target:
+            neighbors = self.neighbors(current)
+            for neighbor in neighbors:
+                if not self.cell_empty(neighbor) and not self.cell_unseen(neighbor) and not self.cell_door_close(neighbor) and (neighbor[0], neighbor[1]) != target:
                         continue
                 else:
-                    # print(neighbor)
+
                     # Check if a better direction is already faced (this is where your rotation logic applies)
                     direction_to_cell = (neighbor[0] - current[0], neighbor[1] - current[1])
                     if np.array_equal(direction_to_cell, np.array(self.f_vec)):
@@ -133,31 +147,40 @@ class Planner:
                     if neighbor not in g_score or tentative_g < g_score[neighbor]:
                         # Update g-score and f-score
                         g_score[neighbor] = tentative_g
-                        f_score = tentative_g + manhattan_distance(neighbor, target)
+                        f_score[neighbor] = tentative_g + manhattan_distance(neighbor, target)
                         heapq.heappush(open_set, (f_score, neighbor))
                         came_from[neighbor] = current
 
         # No path found
         print("Path not found")
         return None
-    
-    def neighbors(self,cell):
-            """Return valid neighbors (up, down, left, right)."""
-            directions = [(-1, 0), (1, 0), (0, -1), (0, 1)]
-            result = []
-            for d in directions:
-                neighbor = (cell[0] + d[0], cell[1] + d[1])
-                
-                if 0 <= neighbor[0] < len(self.vis_mask[0]) and 0 <= neighbor[1] < len(self.vis_mask[1]):  #Bound check for cell
-                    result.append(neighbor)
-            return result
+
+    def cell_empty(self, cell) -> bool:
+        return self.vis_obs[cell[0], cell[1]][0] == 1
+
+    def cell_unseen(self, cell) -> bool:
+        return self.vis_obs[cell[0], cell[1]][0] == 0
+
+    def cell_door_close(self, cell) -> bool:
+        return self.vis_obs[cell[0], cell[1]][0] == 4 and self.vis_obs[cell[0], cell[1]][2] == 0
+
+    def neighbors(self, cell):
+        """Return valid neighbors (up, down, left, right)."""
+        directions = [(-1, 0), (1, 0), (0, -1), (0, 1)]
+        result = []
+        for d in directions:
+            neighbor = (cell[0] + d[0], cell[1] + d[1])
+
+            if 0 <= neighbor[0] < np.shape(self.vis_obs)[0] and 0 <= neighbor[1] < np.shape(self.vis_obs)[1]:  # Bound check for cell
+                result.append(neighbor)
+        return result
     
     def move_to_target(self, target):
         """
         Move the agent along the path returned by A* until the goal is reached.
 
         Parameters:
-            path (list): A list of (x, y) tuples representing the path from A*.
+            target (list): A list of (x, y) tuples representing the path from A*.
         """
         # Use A star only if path empty or if new target to goal
         if len(self.path) == 0 or self.target != target:
@@ -179,7 +202,7 @@ class Planner:
 
         # Determine the action based on the direction
         if np.array_equal(direction_to_cell, np.array(f_vec)):
-            if self.vis_obs[cell_pos[0], cell_pos[1]][0] == 4 and self.vis_obs[cell_pos[0], cell_pos[1]][2] == 1:
+            if self.vis_obs[cell_pos[0], cell_pos[1]][0] == 4 and self.vis_obs[cell_pos[0], cell_pos[1]][2] == 2:
                 print("Open door")
                 return self.actions.toggle
             elif self.vis_obs[cell_pos[0], cell_pos[1]][0] == 5:

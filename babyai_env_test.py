@@ -1,4 +1,5 @@
 import gymnasium as gym
+from gymnasium import Env
 
 from bot import Bot
 from goal_parser import *
@@ -23,11 +24,16 @@ for k_i in gym.envs.registry.keys():
         if k_i not in broken_bonus_envs:
             babyai_envs.append(k_i)
 
+babyai_envs = ['BabyAI-UnlockPickupDist-v0']
+
+print(OBJECT_TO_IDX)
+print(COLOR_TO_IDX)
+
 if __name__ == "__main__":
 
     for env_id in babyai_envs:  # Loop through all environments
-        print(f"Testing environment: {env_id}")
-        env = gym.make(env_id, render_mode ="human", agent_pov = False)
+        print(f"Testing environment: {env_id}\n\n")
+        env: Env = gym.make(env_id, render_mode ="human", agent_pov = False)
         # env = gym.make("BabyAI-Open-v0", render_mode = "human")
         env.reset()  
 
@@ -42,15 +48,15 @@ if __name__ == "__main__":
 
   
         for i in range (max_steps):
-            # time.sleep(1)
+            time.sleep(1)
             action = bot.take_action(env)  # Call the test function
-            
+
             obs, reward, terminated, truncated, info = env.step(action)
-            
+
             if terminated:
-                print(reward)
+                print("Good bye")
                 break
-            # time.sleep(100)
             env.render()
+
         env.close()
 
