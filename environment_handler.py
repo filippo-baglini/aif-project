@@ -1,5 +1,4 @@
-
-def _process_obs(env, agent_vis_mask, agent_vis_obs):
+def _process_obs(env, agent_vis_mask, agent_vis_obs, door_coords):
         """Parse the contents of an observation/image, update our state,
         rotate the vis_mask to the right, and make it specular."""
 
@@ -29,20 +28,26 @@ def _process_obs(env, agent_vis_mask, agent_vis_obs):
                     continue
 
                 agent_vis_mask[abs_i, abs_j] = True
+                # self.vis_type [abs_i, abs_j]
                 
                 if obs_grid.get(vis_i, vis_j) == None:
                     agent_vis_obs[abs_i, abs_j] = (1, -1, 0)
+
                 else:
+                    if obs_grid.get(vis_i, vis_j).encode()[0] == 4:
+                         if (abs_i, abs_j) not in door_coords.keys():
+                             door_coords[abs_i, abs_j] = obs_grid.get(vis_i, vis_j).encode()[0:2]
+
                     agent_vis_obs[abs_i, abs_j] = obs_grid.get(vis_i, vis_j).encode()
-        
+                # print(obj)
+        rotated_mask = agent_vis_mask.T[:, ::-1]
+        specular_mask = rotated_mask[:, ::-1]
+
         #for visual debugging vis_mask
-        #rotated_mask = agent_vis_mask.T[:, ::-1]
-        #specular_mask = rotated_mask[:, ::-1]
-        #print(specular_mask)
+        # print(specular_mask)
 
-        #for visual debugging vis_obs
-        #rotated_obs = agent_vis_obs.T[:, ::-1]
-        #specular_obs = rotated_obs[:, ::-1] #for visual debugging vis_obs
-        #print(specular_obs)
+        rotated_obs = agent_vis_obs.T[:, ::-1]
+        specular_obs = rotated_obs[:, ::-1] #for visual debugging vis_obs
+        # print(specular_obs)
 
-        return agent_vis_mask, agent_vis_obs
+        return agent_vis_mask, agent_vis_obs, door_coords

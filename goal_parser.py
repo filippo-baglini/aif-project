@@ -1,4 +1,3 @@
-
 from minigrid.core.constants import OBJECT_TO_IDX, COLOR_TO_IDX, STATE_TO_IDX
 from minigrid.envs.babyai.core.verifier import *
 from subgoals import GoNextToSubgoal, OpenSubgoal, PickupSubgoal, DropSubgoal
@@ -32,21 +31,21 @@ def understand_goal(plan, instr):
 
     elif isinstance(instr, OpenInstr):       
         plan.sub_goals.append(GoNextToSubgoal(plan, process_desc(instr.desc), reason="Open"))
-        plan.sub_goals.append(OpenSubgoal(plan))
+        # plan.sub_goals.append(OpenSubgoal(plan))
 
     elif isinstance(instr, PickupInstr):
         # We pick up and immediately drop so
         # that we may carry other objects 
-        plan.sub_goals.append(GoNextToSubgoal(plan, process_desc(instr.desc), reason="PickUp"))
-        plan.sub_goals.append(PickupSubgoal(plan, process_desc(instr.desc)))
-        plan.sub_goals.append(DropSubgoal(plan))
+        plan.sub_goals.append(GoNextToSubgoal(plan, process_desc(instr.desc), reason="PickUp_NoKeep"))
+        # plan.sub_goals.append(PickupSubgoal(plan, process_desc(instr.desc)))
+        # plan.sub_goals.append(DropSubgoal(plan))
 
 
     elif isinstance(instr, PutNextInstr):     
-        plan.sub_goals.append(GoNextToSubgoal(plan, process_desc(instr.desc_move), reason="PickUp"))
-        plan.sub_goals.append(PickupSubgoal(plan, process_desc(instr.desc_move)))
+        plan.sub_goals.append(GoNextToSubgoal(plan, process_desc(instr.desc_move), reason="PickUp_Keep_important"))
+        # plan.sub_goals.append(PickupSubgoal(plan, process_desc(instr.desc_move)))
         plan.sub_goals.append(GoNextToSubgoal(plan, process_desc(instr.desc_fixed), reason="PutNext"))
-        plan.sub_goals.append(DropSubgoal(plan))
+        # plan.sub_goals.append(DropSubgoal(plan))
 
 
     elif isinstance(instr, BeforeInstr):
@@ -66,19 +65,3 @@ def understand_goal(plan, instr):
         raise ValueError(f"Unknown instruction type: {instr}")
 
     return 
-
-
-
-# # Direction from the agent to the object
-#                     v = (i - env.agent_pos[0], j - env.agent_pos[1])
-#  # (d1, d2) is an oriented orthonormal basis
-#                     d1 = DIR_TO_VEC[env.agent_dir]
-#                     d2 = (-d1[1], d1[0])
-
-#                     # Check if object's position matches with location
-#                     pos_matches = {
-#                         "left": dot_product(v, d2) < 0,
-#                         "right": dot_product(v, d2) > 0,
-#                         "front": dot_product(v, d1) > 0,
-#                         "behind": dot_product(v, d1) < 0,
-#                     }

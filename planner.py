@@ -1,4 +1,3 @@
-
 import numpy as np
 
 from goal_parser import understand_goal
@@ -24,6 +23,8 @@ class Planner:
         self.vis_mask = np.zeros(shape=(env.unwrapped.width, env.unwrapped.height), dtype=bool)
 
         self.vis_obs= np.zeros(shape=(env.unwrapped.width, env.unwrapped.height), dtype=object)
+
+        self.doors_coords = {}
         
         for i in range(env.unwrapped.width):
             for j in range(env.unwrapped.height):
@@ -39,6 +40,9 @@ class Planner:
         self.path = []
 
         self.carrying = False
+        self.carrying_object = None
+        self.important_objects = []
+        self.important_objects_coords = []
 
 
     def __call__(self):
@@ -48,7 +52,7 @@ class Planner:
         
         self.f_vec = self.env.unwrapped.dir_vec
         self.r_vec = self.env.unwrapped.right_vec
-        self.vis_mask , self.vis_obs = _process_obs(self.env, self.vis_mask, self.vis_obs)
+        self.vis_mask , self.vis_obs, self.doors_coords = _process_obs(self.env, self.vis_mask, self.vis_obs, self.doors_coords)
 
 
     def look_for_goal(self, goal_type, goal_color, goal_loc = None):
@@ -100,7 +104,7 @@ class Planner:
 
         return best_goal
 
-    def a_star_search(self, target, reason):
+    def a_star_search(self, target):
         """
         A* search algorithm for a grid.
         
@@ -110,7 +114,7 @@ class Planner:
         
         Returns the best path as a list of (x, y) tuples or None if no path exists.
         """
-
+        print(f"target A STARRRRRRRRRRRRRR{target}")
         # Priority queue for open set
         open_set = []
         heapq.heappush(open_set, (0, self.pos))  # (f-score, cell)
@@ -133,17 +137,16 @@ class Planner:
                 while current in came_from:
                     path.append(current)
                     current = came_from[current]
+                print(f"PATH {path}")
                 return path[::-1]  # Reverse the path
 
             # Explore neighbors
             for neighbor in self.neighbors(current):
-                # if self.step_is_blocked(neighbor) and neighbor != target:
-                #     if reason == "PutNext":
-                #         continue
 
-                if (self.vis_obs[neighbor[0], neighbor[1]][0] == 2 or self.vis_obs[neighbor[0], neighbor[1]][0] == 9):
+                if (self.vis_obs[neighbor[0], neighbor[1]][0] == 2 or self.vis_obs[neighbor[0], neighbor[1]][0] == 9 ):
                     continue
-                
+                elif(self.vis_obs[neighbor[0], neighbor[1]][0] == 0 and neighbor!=self.target):
+                    continue
                 else:
                     # Check if a better direction is already faced (this is where your rotation logic applies)
                     direction_to_cell = (neighbor[0] - current[0], neighbor[1] - current[1])
@@ -198,7 +201,7 @@ class Planner:
                     result.append(neighbor)
             return result
     
-    def move_to_target(self, target, reason="GoNextTo"):
+    def move_to_target(self, target):
         """
         Move the agent along the path returned by A* until the goal is reached.
 
@@ -207,7 +210,7 @@ class Planner:
         """
         # Use A star only if path empty or if new target to goal
         if len(self.path) == 0 or self.target != target:
-            self.path = self.a_star_search(target, reason)
+            self.path = self.a_star_search(target)
             self.target = target
 
         # Iterate through the path
@@ -229,10 +232,13 @@ class Planner:
 
             if self.step_is_door(cell_pos):
                 return "OPEN DOOR"
-
+ 
             if self.carrying:
                 prev_cell = self.pos
-                self.vis_obs[prev_cell[0], prev_cell[1]] = (1, -1, 0)
+                if self.pos in self.doors_coords.keys():
+                    self.vis_obs[prev_cell[0], prev_cell[1]] = (self.doors_coords[self.pos], 0)
+                else:
+                    self.vis_obs[prev_cell[0], prev_cell[1]] = (1, -1, 0)
 
             self.path.pop(0)
             return self.actions.forward
@@ -242,13 +248,13 @@ class Planner:
             return self.actions.done
         
         elif np.array_equal(direction_to_cell, np.array(r_dir)):
-            if self.step_is_blocked(cell_pos) and self.carrying:
+            if self.step_is_blocked(cell_pos) and self.carrying and self.path[0] != target:
                 return "BLOCKED_SIDE"
             # print("Rotate clockwise (90 degrees)")
             return self.actions.right
 
         elif np.array_equal(direction_to_cell, -np.array(r_dir)):
-            if self.step_is_blocked(cell_pos) and self.carrying:
+            if self.step_is_blocked(cell_pos) and self.carrying and self.path[0] != target:
                 return "BLOCKED_SIDE"
             # print("Rotate counterclockwise (90 degrees)")
             return self.actions.left
@@ -262,8 +268,7 @@ class Planner:
             return "FAILURE"
 
     def find_frontiers(self):
-        # if (len(self.path) != 0):
-        #     return self.move_to_target(self.target)
+
         rows, cols = self.vis_mask.shape
         unseen_cells = []
         min_distance = 999
@@ -277,7 +282,7 @@ class Planner:
                     neighbors = self.neighbors([r, c])
                     for nr, nc in neighbors:
                         if  self.vis_mask[nr, nc] == 1:  #Adjacent to seen cell
-                            if self.vis_obs[nr, nc][0] != 2: #Dont move towards a frontier cell that is behind a wall
+                            if self.vis_obs[nr, nc][0] != 2 and self.vis_obs[nr, nc][2] != 2: #Dont move towards a frontier cell that is behind a wall
                                 unseen_cell = (r, c) #remeber self.vis_mask has rows and columns inverted compared to visual render
                                 unseen_cells.append(unseen_cell)
                                 break
@@ -290,7 +295,7 @@ class Planner:
         return target
 
     
-    def find_closest_empty_cell(self, cell):
+    def find_closest_empty_cell(self, cell, reason=None):
         neighbors = self.neighbors(cell)
         empty_cell = []
         empty_cell_distance = []
@@ -298,18 +303,21 @@ class Planner:
             for col_index, element in enumerate(row):
                 if self.pos == (row_index, col_index):
                     continue
+
+                
                 if self.vis_obs[row_index, col_index][0] == 1:
+                    # empty_nei = self.neighbors((row_index, col_index))
+                    # if any(self.vis_obs[n[0], n[1]][0] == 4 for n in empty_nei):
+                    #     continue
                     empty_cell.append((row_index, col_index))
                     empty_cell_distance.append(manhattan_distance(cell, (row_index, col_index)))
-        # for neighbor in neighbors:
-        #     if self.vis_obs[neighbor[0], neighbor[1]][0] == 1:
-        #         empty_cell.append(neighbor)
-        #         empty_cell_distance.append(manhattan_distance(self.pos, neighbor))
+
             
-        for empty in empty_cell:
-            if empty in neighbors:
-                if empty == self.cell_in_front():
-                    return empty
+        if reason is None:
+            for empty in empty_cell:
+                if empty in neighbors:
+                    if empty == self.cell_in_front():
+                        return empty
 
         best_cell = None
         lowest_distance = float("inf")
@@ -320,6 +328,9 @@ class Planner:
 
         if best_cell:
             return best_cell
+        
+
+    
 
     def cell_in_front(self):
         return (self.pos[0] + self.f_vec[0], self.pos[1] + self.f_vec[1])
@@ -342,7 +353,7 @@ class Planner:
         #print(f"Subgoals: {self.sub_goals}")
         if self.sub_goals:
             current_subgoal = self.sub_goals[0]
-            print(f"Executing subgoal: {current_subgoal}")
+            #print(f"Executing subgoal: {current_subgoal}")
             action = current_subgoal()
             
             if action is self.actions.done:
@@ -357,7 +368,7 @@ class Planner:
             return self.actions.done
     
     def find_relative_position(self, goal_loc, goal_row, goal_col):
-        print("AAAAAAAAAAAAAAa")
+
         relative_position = (goal_row - self.starting_pos[0], goal_col - self.starting_pos[1])
         print(relative_position)
 
@@ -395,8 +406,6 @@ class Planner:
             return False
         
         elif (goal_loc == "right"):
-            print(relative_position[0], relative_position[1])
-            print(self.starting_compass)
             if (relative_position[0] > 0 and np.array_equal(self.starting_compass, [0, -1])): #front, up
                 return True
             elif (relative_position[0] < 0 and np.array_equal(self.starting_compass, [0, 1])): #front, down
@@ -405,5 +414,4 @@ class Planner:
                 return True
             elif (relative_position[1] > 0 and np.array_equal(self.starting_compass, [1, 0])): #front, right
                 return True
-            print("GOAL DIRECTION NOT FOUND")
             return False
