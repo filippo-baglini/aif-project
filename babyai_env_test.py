@@ -38,10 +38,12 @@ if __name__ == "__main__":
         if i == 150:
             break
         print(f"Testing environment: {env_id}")
-        #env = gym.make(env_id, render_mode ="human", agent_pov = False) #Uncomment to test all the different levels with visuals
+        env = gym.make(env_id, render_mode ="human", agent_pov = False) #Uncomment to test all the different levels with visuals
         #env = gym.make(env_id) #Uncomment to test all the different levels without visuals
-        env = gym.make("BabyAI-MiniBossLevel-v0", render_mode = "human")
-        env.reset(seed=2) 
+        env = gym.make("BabyAI-Unlock-v0", render_mode = "human")
+        #env = gym.make("BabyAI-GoToImpUnlock-v0", render_mode = "human")
+        #env = gym.make("BabyAI-MiniBossLevel-v0", render_mode = "human")
+        env.reset(seed=1) 
 
         print(env.unwrapped.mission) 
 
@@ -50,7 +52,7 @@ if __name__ == "__main__":
         num_steps = 0
 
         for i in range (max_steps):
-            #time.sleep(1)
+            #time.sleep(1000)
             action = bot.take_action(env)  # Call the test function
             if action == "FAILURE":
                 print(f"LIVELLO FALLITO: {env}")
