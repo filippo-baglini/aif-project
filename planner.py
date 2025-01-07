@@ -293,7 +293,7 @@ class Planner:
         return target
 
     
-    def find_closest_empty_cell(self, cell):
+    def find_closest_empty_cell(self, cell, reason=None):
         neighbors = self.neighbors(cell)
         empty_cell = []
         empty_cell_distance = []
@@ -311,10 +311,11 @@ class Planner:
                     empty_cell_distance.append(manhattan_distance(cell, (row_index, col_index)))
 
             
-        for empty in empty_cell:
-            if empty in neighbors:
-                if empty == self.cell_in_front():
-                    return empty
+        if reason is None:
+            for empty in empty_cell:
+                if empty in neighbors:
+                    if empty == self.cell_in_front():
+                        return empty
 
         best_cell = None
         lowest_distance = float("inf")

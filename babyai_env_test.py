@@ -31,6 +31,7 @@ for k_i in gym.envs.registry.keys():
 
 reward_list = []
 
+
 if __name__ == "__main__":
     print(len(babyai_envs))
 
@@ -40,8 +41,8 @@ if __name__ == "__main__":
         print(f"Testing environment: {env_id}")
         # env = gym.make(env_id, render_mode ="human", agent_pov = False) #Uncomment to test all the different levels with visuals
         #env = gym.make(env_id) #Uncomment to test all the different levels without visuals
-        env = gym.make("BabyAI-MiniBossLevel-v0", render_mode = "human")
-        env.reset(seed=4) 
+        env = gym.make("BabyAI-MiniBossLevel-v0")
+        env.reset(seed=None) 
 
         print(env.unwrapped.mission) 
 
@@ -72,3 +73,5 @@ if __name__ == "__main__":
     for i in range(len(reward_list)):
         sum_steps += reward_list[i][1] 
     print(sum_steps)
+
+    print(f"Num Mission completed {len(reward_list)}")
