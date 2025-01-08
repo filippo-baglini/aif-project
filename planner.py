@@ -1,7 +1,7 @@
 import numpy as np
 
 from goal_parser import understand_goal
-from utils import manhattan_distance
+from utils import manhattan_distance, manhattan_distance_accounting_for_walls
 from environment_handler import _process_obs
 import heapq
 import time
@@ -89,7 +89,8 @@ class Planner:
                                 goals.append((row_index, col_index))
 
         for goal in goals:
-            distance = manhattan_distance(self.pos, goal)
+            distance = manhattan_distance(self.pos, goal) #UNCOMMENTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT
+            #distance = manhattan_distance_accounting_for_walls(self.pos, goal, self.vis_obs)
             if (distance < min_distance):
                 min_distance = distance
                 best_goal = goal
@@ -114,6 +115,7 @@ class Planner:
         # g-scores (costs to reach each cell)
         g_score = {self.pos: 0}
         f_score = {self.pos: manhattan_distance(self.pos, target)}
+        #f_score = {self.pos: manhattan_distance_accounting_for_walls(self.pos, target, self.vis_obs)}
         # Path tracking
         came_from = {}
 
@@ -172,6 +174,7 @@ class Planner:
                         # Update g-score and f-score
                         g_score[neighbor] = tentative_g
                         f_score = tentative_g + manhattan_distance(neighbor, target)
+                        #f_score = tentative_g + manhattan_distance_accounting_for_walls(neighbor, target, self.vis_obs)
                         heapq.heappush(open_set, (f_score, neighbor))
                         came_from[neighbor] = current
 
@@ -280,9 +283,11 @@ class Planner:
                                 break
         for cell in unseen_cells:
             if any(self.vis_obs[n[0], n[1]][2] == 2 for n in self.neighbors(cell)):
-                distance = manhattan_distance(self.pos, cell) + 10
+                #distance = manhattan_distance(self.pos, cell) + 10
+                distance = manhattan_distance_accounting_for_walls(self.pos, cell, self.vis_obs) + 20
             else:
-                distance = manhattan_distance(self.pos, cell)
+                #distance = manhattan_distance(self.pos, cell)
+                distance = manhattan_distance_accounting_for_walls(self.pos, cell, self.vis_obs)
             if distance < min_distance:
                 min_distance = distance
                 target = cell
@@ -303,6 +308,7 @@ class Planner:
                 if self.vis_obs[row_index, col_index][0] == 1:
                     empty_cell.append((row_index, col_index))
                     empty_cell_distance.append(manhattan_distance(cell, (row_index, col_index)))
+                    #empty_cell_distance.append(manhattan_distance_accounting_for_walls(cell, (row_index, col_index), self.vis_obs))
 
         if reason is None:
             for empty in empty_cell:
@@ -339,6 +345,7 @@ class Planner:
         
         for empty_cell in empty_cells:
             distance = manhattan_distance(cell, empty_cell)
+            #distance = manhattan_distance_accounting_for_walls(cell, empty_cell, self.vis_obs)
             if distance < min_distance:
                 best_empty_cells = [empty_cell]
                 min_distance = distance
@@ -350,6 +357,7 @@ class Planner:
             if empty_cell == self.pos:
                     continue
             distance = manhattan_distance(self.pos, empty_cell)
+            #distance = manhattan_distance_accounting_for_walls(self.pos, empty_cell, self.vis_obs)
             if distance < min_distance:
                 best_cell = empty_cell
                 min_distance = distance

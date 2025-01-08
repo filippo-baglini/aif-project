@@ -38,7 +38,7 @@ if __name__ == "__main__":
         print(f"Testing environment: {env_id}")
         #env = gym.make(env_id, render_mode ="human", agent_pov = False) #Uncomment to test all the different levels with visuals
         env = gym.make(env_id) #Uncomment to test all the different levels without visuals
-        #env = gym.make("BabyAI-UnlockPickupDist-v0", render_mode = "human")
+        #env = gym.make("BabyAI-KeyCorridorS5R3-v0", render_mode = "human")
         #env = gym.make("BabyAI-PutNextS6N3-v0", render_mode = "human")
         #env = gym.make("BabyAI-BlockedUnlockPickup-v0", render_mode = "human")
         #env = gym.make("BabyAI-SynthS5R2-v0", render_mode = "human")
