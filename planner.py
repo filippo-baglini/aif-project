@@ -14,11 +14,10 @@ class Planner:
         pos = env.unwrapped.agent_pos
         self.pos = (pos[0].item(), pos[1].item())
         self.starting_pos = self.pos
-        #print(self.starting_pos)
 
         self.f_vec = env.unwrapped.dir_vec
         self.r_vec = env.unwrapped.right_vec
-        self.starting_compass = self.f_vec #NEXT THING TO DO
+        self.starting_compass = self.f_vec 
 
         self.vis_mask = np.zeros(shape=(env.unwrapped.width, env.unwrapped.height), dtype=bool)
 
@@ -56,9 +55,7 @@ class Planner:
 
 
     def look_for_goal(self, goal_type, goal_color, goal_loc = None):
-        
-        #print("AAAAAAAAAA")
-        #print(goal_type, goal_color, goal_loc)
+
         goals = []
         min_distance = 999
         best_goal = None
@@ -69,30 +66,25 @@ class Planner:
                 if isinstance(element, tuple):
                     if goal_color is not None and goal_type is not None:
                         if element[0] == goal_type and element[1] == goal_color:
-                            if goal_loc is not None: #NEXT THING TO DO
+                            if goal_loc is not None: 
                                 if(self.find_relative_position(goal_loc, row_index, col_index)):
                                    goals.append((row_index, col_index)) 
-                                #time.sleep(100)    
                             else:
                                 goals.append((row_index, col_index))
 
                     elif goal_color is None:
                         if element[0] == goal_type:
-                            if goal_loc is not None: #NEXT THING TO DO
+                            if goal_loc is not None: 
                                 if (self.find_relative_position(goal_loc, row_index, col_index)):
                                     goals.append((row_index, col_index))
-                                # print(self.starting_compass)
-                                # time.sleep(100)
                             else:
                                 goals.append((row_index, col_index))
 
                     elif goal_type is None:
                         if element[0] != 2 and element[1] == goal_color:
-                            if goal_loc is not None: #NEXT THING TO DO
+                            if goal_loc is not None: 
                                 if (self.find_relative_position(goal_loc, row_index, col_index)):
                                     goals.append((row_index, col_index))
-                                # print(self.starting_compass)
-                                # time.sleep(100)
                             else:
                                 goals.append((row_index, col_index))
 
@@ -114,7 +106,7 @@ class Planner:
         
         Returns the best path as a list of (x, y) tuples or None if no path exists.
         """
-        #print(f"target A STARRRRRRRRRRRRRR{target}")
+
         # Priority queue for open set
         open_set = []
         heapq.heappush(open_set, (0, self.pos))  # (f-score, cell)
@@ -137,13 +129,10 @@ class Planner:
                 while current in came_from:
                     path.append(current)
                     current = came_from[current]
-                #print(f"PATH {path}")
-                #time.sleep(9000000000)
                 return path[::-1]  # Reverse the path
 
             # Explore neighbors
             for neighbor in self.neighbors(current):
-                #print(f"NEIGHBOR: {neighbor}, VIS_OBS NEIGHBOR: {self.vis_obs[neighbor[0], neighbor[1]][0]}")
 
                 if (self.vis_obs[neighbor[0], neighbor[1]][0] in (2, 9) or (self.vis_obs[neighbor[0], neighbor[1]][0] == 0 and neighbor != target)):
                     continue
@@ -152,7 +141,7 @@ class Planner:
                     # Check if a better direction is already faced (this is where your rotation logic applies)
                     direction_to_cell = (neighbor[0] - current[0], neighbor[1] - current[1])
                     if np.array_equal(direction_to_cell, np.array(self.f_vec)):
-                        if(self.vis_obs[neighbor[0], neighbor[1]][0] == 5 or self.vis_obs[neighbor[0], neighbor[1]][0] == 6 or self.vis_obs[neighbor[0], neighbor[1]][0] == 7):
+                        if(self.vis_obs[neighbor[0], neighbor[1]][0] in (5, 6, 7)):
                             if self.carrying:
                                 tentative_g = g_score[current] + 5 #Rotate, drop the carried item, rotate, pick up, move forward
                             else:
@@ -161,7 +150,7 @@ class Planner:
                         # No rotation needed, just moving forward
                             tentative_g = g_score[current] + 1  # Moving forward
                     elif np.array_equal(direction_to_cell, -np.array(self.f_vec)):
-                        if(self.vis_obs[neighbor[0], neighbor[1]][0] == 5 or self.vis_obs[neighbor[0], neighbor[1]][0] == 6 or self.vis_obs[neighbor[0], neighbor[1]][0] == 7):
+                        if(self.vis_obs[neighbor[0], neighbor[1]][0] in (5, 6, 7)):
                             if self.carrying:
                                 tentative_g = g_score[current] + 7
                             else:  
@@ -170,7 +159,7 @@ class Planner:
                         else:
                             tentative_g =  g_score[current] + 3
                     else:
-                        if(self.vis_obs[neighbor[0], neighbor[1]][0] == 5 or self.vis_obs[neighbor[0], neighbor[1]][0] == 6 or self.vis_obs[neighbor[0], neighbor[1]][0] == 7):
+                        if(self.vis_obs[neighbor[0], neighbor[1]][0] in (5, 6, 7)):
                             if self.carrying:
                                 tentative_g = g_score[current] + 6
                             else:
@@ -227,7 +216,7 @@ class Planner:
         # Calculate direction to the next cell
         direction_to_cell = (cell_pos[0] - pos[0], cell_pos[1] - pos[1])
 
-        if np.array_equal(direction_to_cell, np.array(f_vec)) and cell_pos != target: #IMPORTANT MISSING CONDITON TO CHECK IF CELL HE NEEDS TO MOVE IS LAST WHICH IS THE TARGET
+        if np.array_equal(direction_to_cell, np.array(f_vec)) and cell_pos != target: 
             if self.step_is_blocked(cell_pos):
                 return "BLOCKED"
 
@@ -302,6 +291,7 @@ class Planner:
 
     
     def find_closest_empty_cell(self, cell, reason=None):
+
         neighbors = self.neighbors(cell)
         empty_cell = []
         empty_cell_distance = []
@@ -310,15 +300,10 @@ class Planner:
                 if self.pos == (row_index, col_index):
                     continue
 
-                
                 if self.vis_obs[row_index, col_index][0] == 1:
-                    # empty_nei = self.neighbors((row_index, col_index))
-                    # if any(self.vis_obs[n[0], n[1]][0] == 4 for n in empty_nei):
-                    #     continue
                     empty_cell.append((row_index, col_index))
                     empty_cell_distance.append(manhattan_distance(cell, (row_index, col_index)))
 
-            
         if reason is None:
             for empty in empty_cell:
                 if empty in neighbors:
@@ -334,26 +319,64 @@ class Planner:
 
         if best_cell:
             return best_cell
-        
-
     
+    def find_closest_drop_cell(self, cell, reason=None):
+
+        if cell == self.pos:
+            if self.object_in_front()[0] == 1:
+                return self.cell_in_front()
+            
+        min_distance = 999
+        empty_cells = []
+        best_empty_cells = []
+        for row_index, row in enumerate(self.vis_obs):
+            for col_index, element in enumerate(row):
+                if self.pos == (row_index, col_index):
+                    continue
+
+                if self.vis_obs[row_index, col_index][0] == 1:
+                    empty_cells.append((row_index, col_index))
+        
+        for empty_cell in empty_cells:
+            distance = manhattan_distance(cell, empty_cell)
+            if distance < min_distance:
+                best_empty_cells = [empty_cell]
+                min_distance = distance
+            elif distance == min_distance:
+                best_empty_cells.append(empty_cell)
+
+        min_distance = 999
+        for empty_cell in best_empty_cells:
+            if empty_cell == self.pos:
+                    continue
+            distance = manhattan_distance(self.pos, empty_cell)
+            if distance < min_distance:
+                best_cell = empty_cell
+                min_distance = distance
+
+        return best_cell
+
 
     def cell_in_front(self):
         return (self.pos[0] + self.f_vec[0], self.pos[1] + self.f_vec[1])
     
-    # def cell_behind(self):
-    #     return (self.pos[0] - self.f_vec[0], self.pos[1] - self.f_vec[1])
+
+    def object_in_front(self):
+        return self.vis_obs[self.cell_in_front()]
     
+
     def step_is_blocked(self, cell):
         for i in range(5,8):
             if self.vis_obs[cell[0], cell[1]][0] == i:
                 return True
         return False
     
+
     def step_is_door(self, cell):
         if self.vis_obs[cell[0], cell[1]][0] == 4 and self.vis_obs[cell[0], cell[1]][2] == 1:
             return True
         return False
+
 
     def execute_subgoals(self):
         #print(f"Subgoals: {self.sub_goals}")
@@ -371,12 +394,11 @@ class Planner:
 
         else:
             print("All subgoals completed")
-            return self.actions.done
+            return "FAILURE"
     
-    def find_relative_position(self, goal_loc, goal_row, goal_col):
+    def find_relative_position(self, goal_loc, goal_row, goal_col): #RIGUARDA TUTTE LE CONDIZIONI!!!!!!!!!!!
 
         relative_position = (goal_row - self.starting_pos[0], goal_col - self.starting_pos[1])
-        #print(relative_position)
 
         if (goal_loc == "front"):
             if (relative_position[1] < 0 and np.array_equal(self.starting_compass, [0, -1])): #front, up
