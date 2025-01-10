@@ -29,16 +29,17 @@ def test_bot(env_id):
     """
     # Use the parameter env_id to make the environment
     env = gym.make(env_id)
-    #env = gym.make(env_id, render_mode="human") # for visual debugging
+    #env = gym.make("BabyAI-SynthS5R2-v0", render_mode = "human")
+    #env = gym.make("BabyAI-MiniBossLevel-v0", render_mode="human") # for visual debugging
 
     # reset env
     curr_seed = 0
 
     num_steps = 240
-    fava = 0
+    steps = 0
     terminated = False
     while not terminated:
-        env.reset(seed=curr_seed)
+        env.reset(seed=2)
         #print (env.observation_space)
 
         # create expert bot
@@ -49,26 +50,25 @@ def test_bot(env_id):
         for _step in range(num_steps):
             action = expert.replan(last_action)
             obs, reward, terminated, truncated, info = env.step(action)
-            fava += 1
+            steps += 1
             last_action = action
             env.render()
 
             if terminated:
-                print(f"PROVA NUM_STEPS: {fava}")
-                result = (env_id, fava)
+                print(f"PROVA NUM_STEPS: {steps}")
+                result = (env_id, steps)
                 result_list.append(result)
                 break
 
         # try again with a different seed
         #curr_seed += 1
-        #
 
     env.close()
 
 if __name__ == "__main__":
     # Run a specific environment for debugging
     for i, env_id in enumerate(babyai_envs):  # Loop through all environments
-        if i == 50:
+        if i == 100:
             break
         print(f"Testing environment: {env_id}")
         test_bot(env_id)  # Call the test function
