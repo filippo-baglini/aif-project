@@ -37,6 +37,7 @@ class Planner:
 
         self.target = None
         self.path = []
+        self.prev_frontier = None
 
         self.carrying = False
         self.carrying_object = None
@@ -260,7 +261,7 @@ class Planner:
             print("Unexpected state. Cannot determine action.")
             return "FAILURE"
 
-    def find_frontiers(self):
+    def find_frontiers(self, exclude_frontier = None):
 
         target = None
         rows, cols = self.vis_mask.shape
@@ -278,6 +279,8 @@ class Planner:
                         if  self.vis_mask[nr, nc] == 1:  #Adjacent to seen cell
                             #if self.vis_obs[nr, nc][0] != 2 and self.vis_obs[nr, nc][2] != 2: #Dont move towards a frontier cell that is behind a wall
                             if self.vis_obs[nr, nc][0] != 2:
+                                if (exclude_frontier is not None and exclude_frontier == (r, c)):
+                                    break
                                 unseen_cell = (r, c) #remeber self.vis_mask has rows and columns inverted compared to visual render
                                 unseen_cells.append(unseen_cell)
                                 break
@@ -293,6 +296,10 @@ class Planner:
                 target = cell
 
         return target
+    
+    def find_new_frontiers(self, old_frontier):
+        new_frontier = self.find_frontiers(old_frontier)
+        return new_frontier
 
     
     def find_closest_empty_cell(self, cell, reason=None):
@@ -409,24 +416,24 @@ class Planner:
         relative_position = (goal_row - self.starting_pos[0], goal_col - self.starting_pos[1])
 
         if (goal_loc == "front"):
-            if (relative_position[1] < 0 and np.array_equal(self.starting_compass, [0, -1])): #front, up
+            if (relative_position[0] < 0 and np.array_equal(self.starting_compass, [0, -1])): #front, up
                 return True
-            elif (relative_position[1] > 0 and np.array_equal(self.starting_compass, [0, 1])): #front, down
+            elif (relative_position[0] > 0 and np.array_equal(self.starting_compass, [0, 1])): #front, down
                 return True
-            elif (relative_position[0] < 0 and np.array_equal(self.starting_compass, [-1, 0])): #front, left
+            elif (relative_position[1] < 0 and np.array_equal(self.starting_compass, [-1, 0])): #front, left
                 return True
-            elif (relative_position[0] > 0 and np.array_equal(self.starting_compass, [1, 0])): #front, right
+            elif (relative_position[1] > 0 and np.array_equal(self.starting_compass, [1, 0])): #front, right
                 return True
             return False
         
         elif (goal_loc == "behind"):
-            if (relative_position[1] < 0 and np.array_equal(self.starting_compass, [0, 1])): #front, down
+            if (relative_position[0] < 0 and np.array_equal(self.starting_compass, [0, 1])): #front, down
                 return True
-            elif (relative_position[1] > 0 and np.array_equal(self.starting_compass, [0, -1])): #front, up
+            elif (relative_position[0] > 0 and np.array_equal(self.starting_compass, [0, -1])): #front, up
                 return True
-            elif (relative_position[0] < 0 and np.array_equal(self.starting_compass, [1, 0])): #front, right
+            elif (relative_position[1] < 0 and np.array_equal(self.starting_compass, [1, 0])): #front, right
                 return True
-            elif (relative_position[0] > 0 and np.array_equal(self.starting_compass, [-1, 0])): #front, left
+            elif (relative_position[1] > 0 and np.array_equal(self.starting_compass, [-1, 0])): #front, left
                 return True
             return False
         

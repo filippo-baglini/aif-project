@@ -34,15 +34,15 @@ reward_list = []
 if __name__ == "__main__":
     print(len(babyai_envs))
 
-    for i, env_id in enumerate(babyai_envs): # Loop through all environments
+    for env_id in babyai_envs: # Loop through all environments
         print(f"Testing environment: {env_id}")
         #env = gym.make(env_id, render_mode ="human", agent_pov = False) #Uncomment to test all the different levels with visuals
         env = gym.make(env_id) #Uncomment to test all the different levels without visuals
-        #env = gym.make("BabyAI-KeyCorridorS5R3-v0", render_mode = "human")
         #env = gym.make("BabyAI-PutNextS6N3-v0", render_mode = "human")
-        #env = gym.make("BabyAI-BlockedUnlockPickup-v0", render_mode = "human")
+        #env = gym.make("BabyAI-BossLevelNoUnlock-v0", render_mode = "human") #TIENILO
+        #env = gym.make("BabyAI-UnlockToUnlock-v0", render_mode = "human")
         #env = gym.make("BabyAI-SynthS5R2-v0", render_mode = "human")
-        env.reset(seed=1)
+        env.reset(seed=42)
 
         print(env.unwrapped.mission) 
 
@@ -51,7 +51,7 @@ if __name__ == "__main__":
         num_steps = 0
 
         for i in range (max_steps):
-            #time.sleep(50)
+            #time.sleep(3)
             action = bot.take_action(env)  # Call the test function
             if action == "FAILURE":
                 print(f"LIVELLO FALLITO: {env}")

@@ -199,6 +199,8 @@ class ExploreSubgoal(Subgoal):
         if self.target_pos is None:
             #time.sleep(1)
             self.frontier = self.planner.find_frontiers()
+            if self.frontier == self.planner.prev_frontier:
+                self.frontier = self.planner.find_new_frontiers(self.frontier)
             #print("FRONTIERA:", self.frontier)
             neighbors = self.planner.neighbors(self.frontier)
             if self.planner.vis_obs[self.frontier][2] == 2 or any(self.planner.vis_obs[n[0], n[1]][2] == 2 for n in neighbors):
@@ -206,9 +208,11 @@ class ExploreSubgoal(Subgoal):
                     if self.planner.vis_obs[n[0], n[1]][2] == 2:
                         target = n
                 self.planner.sub_goals.pop(0)
+                self.planner.prev_frontier = self.frontier
                 self.planner.sub_goals.insert(0, GoNextToSubgoal(self.planner, None, "Open", target))
                 return self.planner.actions.done
             self.planner.sub_goals.pop(0)
+            self.planner.prev_frontier = self.frontier
             self.planner.sub_goals.insert(0, GoNextToSubgoal(self.planner, self.target, "Explore", self.frontier))
             return self.planner.actions.done
         

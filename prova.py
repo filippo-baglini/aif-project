@@ -29,7 +29,9 @@ def test_bot(env_id):
     """
     # Use the parameter env_id to make the environment
     env = gym.make(env_id)
+    env = gym.make("BabyAI-UnlockToUnlock-v0", render_mode = "human")
     #env = gym.make("BabyAI-SynthS5R2-v0", render_mode = "human")
+    #env = gym.make("BabyAI-GoToImpUnlock-v0", render_mode = "human")
     #env = gym.make("BabyAI-MiniBossLevel-v0", render_mode="human") # for visual debugging
 
     # reset env
@@ -39,7 +41,7 @@ def test_bot(env_id):
     steps = 0
     terminated = False
     while not terminated:
-        env.reset(seed=2)
+        env.reset(seed=42)
         #print (env.observation_space)
 
         # create expert bot
