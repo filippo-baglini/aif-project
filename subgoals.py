@@ -200,6 +200,7 @@ class ExploreSubgoal(Subgoal):
             #time.sleep(1)
             self.frontier = self.planner.find_frontiers()
             #print("FRONTIERA:", self.frontier)
+            #time.sleep(1000)
             neighbors = self.planner.neighbors(self.frontier)
             if self.planner.vis_obs[self.frontier][2] == 2 or any(self.planner.vis_obs[n[0], n[1]][2] == 2 for n in neighbors):
                 for n in neighbors:

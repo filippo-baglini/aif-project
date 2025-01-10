@@ -284,7 +284,7 @@ class Planner:
         for cell in unseen_cells:
             if any(self.vis_obs[n[0], n[1]][2] == 2 for n in self.neighbors(cell)):
                 #distance = manhattan_distance(self.pos, cell) + 10
-                distance = manhattan_distance_accounting_for_walls(self.pos, cell, self.vis_obs) + 20
+                distance = manhattan_distance_accounting_for_walls(self.pos, cell, self.vis_obs) + 150
             else:
                 #distance = manhattan_distance(self.pos, cell)
                 distance = manhattan_distance_accounting_for_walls(self.pos, cell, self.vis_obs)

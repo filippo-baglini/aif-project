@@ -39,7 +39,7 @@ def test_bot(env_id):
     steps = 0
     terminated = False
     while not terminated:
-        env.reset(seed=2)
+        env.reset(seed=3)
         #print (env.observation_space)
 
         # create expert bot
