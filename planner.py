@@ -387,12 +387,16 @@ class Planner:
 
         for n in self.neighbors(cell):
 
+            if n == self.pos:
+                continue
+            
             if self.vis_obs[n[0], n[1]][0] in (5, 6, 7):
                 blocked_cells.append(n)
             
             if self.vis_obs[n[0], n[1]][0] == 1:
                 print(f"empty cell: {n}")
                 empty_cells.append(n)
+
         
         if len(empty_cells) == 0:
 
@@ -413,7 +417,7 @@ class Planner:
 
         return best_cell
 
-    def find_closest_empy_cell_avoiding_previous_path(self, cell):
+    def find_closest_empty_cell_avoiding_previous_path(self, cell):
         neighbors = self.neighbors(cell)
         empty_cell = []
         empty_cell_distance = []
@@ -424,6 +428,8 @@ class Planner:
 
                 if self.vis_obs[row_index, col_index][0] == 1:
                     if self.drop_pos is not None and (row_index, col_index) == self.drop_pos:
+                        pass
+                    elif (row_index, col_index) in self.save_path:
                         pass
                     else:
                         empty_cell.append((row_index, col_index))

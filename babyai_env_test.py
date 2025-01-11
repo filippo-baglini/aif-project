@@ -39,13 +39,13 @@ if __name__ == "__main__":
 
         #env = gym.make(env_id, render_mode ="human", agent_pov = False) #Uncomment to test all the different levels with visuals
         env = gym.make(env_id) #Uncomment to test all the different levels without visuals
-        #env = gym.make("BabyAI-MiniBossLevel-v0", render_mode = "human")
+        # env = gym.make("BabyAI-MiniBossLevel-v0", render_mode = "human")
         # env = gym.make("BabyAI-MiniBossLevel-v0", render_mode = "human") #TIENILO
         #env = gym.make("BabyAI-MoveTwoAcrossS8N9-v0", render_mode = "human")
-        # env = gym.make("BabyAI-KeyCorridorS3R2-v0", render_mode = "human")
-        # env = gym.make("BabyAI-GoToImpUnlock-v0", render_mode = "human")
+        # env = gym.make("BabyAI-PutNextLocalS6N4-v0", render_mode = "human")
+        # env = gym.make("BabyAI-SynthS5R2-v0", render_mode = "human")
         
-        env.reset(seed=10)
+        env.reset(seed=15)
 
         print(env.unwrapped.mission) 
 
