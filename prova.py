@@ -29,19 +29,19 @@ def test_bot(env_id):
     """
     # Use the parameter env_id to make the environment
     env = gym.make(env_id)
-    env = gym.make("BabyAI-UnlockToUnlock-v0", render_mode = "human")
-    #env = gym.make("BabyAI-SynthS5R2-v0", render_mode = "human")
+    #env = gym.make("BabyAI-UnlockToUnlock-v0", render_mode = "human")
+    #env = gym.make("BabyAI-Unlock-v0", render_mode = "human")
     #env = gym.make("BabyAI-GoToImpUnlock-v0", render_mode = "human")
     #env = gym.make("BabyAI-MiniBossLevel-v0", render_mode="human") # for visual debugging
 
     # reset env
     curr_seed = 0
 
-    num_steps = 240
+    num_steps = 500
     steps = 0
     terminated = False
     while not terminated:
-        env.reset(seed=42)
+        env.reset(seed=15)
         #print (env.observation_space)
 
         # create expert bot
@@ -62,6 +62,9 @@ def test_bot(env_id):
                 result_list.append(result)
                 break
 
+            if _step == num_steps - 1:
+                return("MAX STEPS TAKEN")
+
         # try again with a different seed
         #curr_seed += 1
 
@@ -77,5 +80,6 @@ if __name__ == "__main__":
     print(result_list)
     sum_steps = 0
     for i in range(len(result_list)):
-        sum_steps += result_list[i][1] 
+        sum_steps += result_list[i][1]
+    print(len(result_list)) 
     print(sum_steps)

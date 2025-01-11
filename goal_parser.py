@@ -23,35 +23,25 @@ def understand_goal(plan, instr):
     """
     Translate instructions into an internal form the agent can execute
     """
-  
-    #print(instr)
 
     if isinstance(instr, GoToInstr):
         plan.sub_goals.append(GoNextToSubgoal(plan,process_desc(instr.desc)))
 
     elif isinstance(instr, OpenInstr):       
         plan.sub_goals.append(GoNextToSubgoal(plan, process_desc(instr.desc), reason="Open"))
-        # plan.sub_goals.append(OpenSubgoal(plan))
 
     elif isinstance(instr, PickupInstr):
         # We pick up and immediately drop so
         # that we may carry other objects 
         plan.sub_goals.append(GoNextToSubgoal(plan, process_desc(instr.desc), reason="PickUp_NoKeep"))
-        # plan.sub_goals.append(PickupSubgoal(plan, process_desc(instr.desc)))
-        # plan.sub_goals.append(DropSubgoal(plan))
-
 
     elif isinstance(instr, PutNextInstr):     
         plan.sub_goals.append(GoNextToSubgoal(plan, process_desc(instr.desc_move), reason="PickUp_Keep_important"))
-        # plan.sub_goals.append(PickupSubgoal(plan, process_desc(instr.desc_move)))
         plan.sub_goals.append(GoNextToSubgoal(plan, process_desc(instr.desc_fixed), reason="PutNext"))
-        # plan.sub_goals.append(DropSubgoal(plan))
-
 
     elif isinstance(instr, BeforeInstr):
         (understand_goal(plan,instr.instr_a))
         (understand_goal(plan,instr.instr_b))
-
 
     elif isinstance(instr, AfterInstr):
         (understand_goal(plan,instr.instr_b))

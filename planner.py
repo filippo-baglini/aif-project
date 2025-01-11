@@ -38,6 +38,7 @@ class Planner:
         self.target = None
         self.path = []
         self.prev_frontier = None
+        self.drop_pos = None
 
         self.carrying = False
         self.carrying_object = None
@@ -90,12 +91,12 @@ class Planner:
                                 goals.append((row_index, col_index))
 
         for goal in goals:
-            distance = manhattan_distance(self.pos, goal) #UNCOMMENTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT
-            #distance = manhattan_distance_accounting_for_walls(self.pos, goal, self.vis_obs)
+            distance = manhattan_distance(self.pos, goal)
+            distance = manhattan_distance_accounting_for_walls(self.pos, goal, self.vis_obs)
             if (distance < min_distance):
                 min_distance = distance
                 best_goal = goal
-
+                
         return best_goal
 
     def a_star_search(self, target):
@@ -116,7 +117,6 @@ class Planner:
         # g-scores (costs to reach each cell)
         g_score = {self.pos: 0}
         f_score = {self.pos: manhattan_distance(self.pos, target)}
-        #f_score = {self.pos: manhattan_distance_accounting_for_walls(self.pos, target, self.vis_obs)}
         # Path tracking
         came_from = {}
 
@@ -230,7 +230,7 @@ class Planner:
             if self.carrying:
                 prev_cell = self.pos
                 if self.pos in self.doors_coords.keys():
-                    self.vis_obs[prev_cell[0], prev_cell[1]] = (*self.doors_coords[self.pos], 0)
+                    self.vis_obs[prev_cell[0], prev_cell[1]] = (*self.doors_coords[self.pos],)
                 else:
                     self.vis_obs[prev_cell[0], prev_cell[1]] = (1, -1, 0)
 
@@ -276,8 +276,7 @@ class Planner:
                 if not self.vis_mask[r, c]:
                     neighbors = self.neighbors([r, c])
                     for nr, nc in neighbors:
-                        if  self.vis_mask[nr, nc] == 1:  #Adjacent to seen cell
-                            #if self.vis_obs[nr, nc][0] != 2 and self.vis_obs[nr, nc][2] != 2: #Dont move towards a frontier cell that is behind a wall
+                        if self.vis_mask[nr, nc] == 1:  #Adjacent to seen cell
                             if self.vis_obs[nr, nc][0] != 2:
                                 if (exclude_frontier is not None and exclude_frontier == (r, c)):
                                     break
@@ -286,10 +285,8 @@ class Planner:
                                 break
         for cell in unseen_cells:
             if any(self.vis_obs[n[0], n[1]][2] == 2 for n in self.neighbors(cell)):
-                #distance = manhattan_distance(self.pos, cell) + 10
-                distance = manhattan_distance_accounting_for_walls(self.pos, cell, self.vis_obs) + 20
+                distance = manhattan_distance_accounting_for_walls(self.pos, cell, self.vis_obs) + 100
             else:
-                #distance = manhattan_distance(self.pos, cell)
                 distance = manhattan_distance_accounting_for_walls(self.pos, cell, self.vis_obs)
             if distance < min_distance:
                 min_distance = distance
@@ -313,9 +310,12 @@ class Planner:
                     continue
 
                 if self.vis_obs[row_index, col_index][0] == 1:
-                    empty_cell.append((row_index, col_index))
-                    empty_cell_distance.append(manhattan_distance(cell, (row_index, col_index)))
-                    #empty_cell_distance.append(manhattan_distance_accounting_for_walls(cell, (row_index, col_index), self.vis_obs))
+                    if self.drop_pos is not None and (row_index, col_index) == self.drop_pos:
+                        print("Entrato", self.drop_pos)
+                        pass
+                    else:
+                        empty_cell.append((row_index, col_index))
+                        empty_cell_distance.append(manhattan_distance(cell, (row_index, col_index)))
 
         if reason is None:
             for empty in empty_cell:
@@ -343,7 +343,7 @@ class Planner:
         empty_cells = []
         best_empty_cells = []
         for row_index, row in enumerate(self.vis_obs):
-            for col_index, element in enumerate(row):
+            for col_index, col in enumerate(row):
                 if self.pos == (row_index, col_index):
                     continue
 
@@ -352,7 +352,6 @@ class Planner:
         
         for empty_cell in empty_cells:
             distance = manhattan_distance(cell, empty_cell)
-            #distance = manhattan_distance_accounting_for_walls(cell, empty_cell, self.vis_obs)
             if distance < min_distance:
                 best_empty_cells = [empty_cell]
                 min_distance = distance
@@ -361,10 +360,7 @@ class Planner:
 
         min_distance = 999
         for empty_cell in best_empty_cells:
-            if empty_cell == self.pos:
-                    continue
             distance = manhattan_distance(self.pos, empty_cell)
-            #distance = manhattan_distance_accounting_for_walls(self.pos, empty_cell, self.vis_obs)
             if distance < min_distance:
                 best_cell = empty_cell
                 min_distance = distance
@@ -416,24 +412,24 @@ class Planner:
         relative_position = (goal_row - self.starting_pos[0], goal_col - self.starting_pos[1])
 
         if (goal_loc == "front"):
-            if (relative_position[0] < 0 and np.array_equal(self.starting_compass, [0, -1])): #front, up
+            if (relative_position[1] < 0 and np.array_equal(self.starting_compass, [0, -1])): #front, up
                 return True
-            elif (relative_position[0] > 0 and np.array_equal(self.starting_compass, [0, 1])): #front, down
+            elif (relative_position[1] > 0 and np.array_equal(self.starting_compass, [0, 1])): #front, down
                 return True
-            elif (relative_position[1] < 0 and np.array_equal(self.starting_compass, [-1, 0])): #front, left
+            elif (relative_position[0] < 0 and np.array_equal(self.starting_compass, [-1, 0])): #front, left
                 return True
-            elif (relative_position[1] > 0 and np.array_equal(self.starting_compass, [1, 0])): #front, right
+            elif (relative_position[0] > 0 and np.array_equal(self.starting_compass, [1, 0])): #front, right
                 return True
             return False
         
         elif (goal_loc == "behind"):
-            if (relative_position[0] < 0 and np.array_equal(self.starting_compass, [0, 1])): #front, down
+            if (relative_position[1] < 0 and np.array_equal(self.starting_compass, [0, 1])): #front, down
                 return True
-            elif (relative_position[0] > 0 and np.array_equal(self.starting_compass, [0, -1])): #front, up
+            elif (relative_position[1] > 0 and np.array_equal(self.starting_compass, [0, -1])): #front, up
                 return True
-            elif (relative_position[1] < 0 and np.array_equal(self.starting_compass, [1, 0])): #front, right
+            elif (relative_position[0] < 0 and np.array_equal(self.starting_compass, [1, 0])): #front, right
                 return True
-            elif (relative_position[1] > 0 and np.array_equal(self.starting_compass, [-1, 0])): #front, left
+            elif (relative_position[0] > 0 and np.array_equal(self.starting_compass, [-1, 0])): #front, left
                 return True
             return False
         

@@ -220,6 +220,7 @@ class ExploreSubgoal(Subgoal):
             self.planner.sub_goals.pop(0)
             if self.reason == "PutNext":
                 self.target_pos = self.planner.find_closest_drop_cell(self.target_pos)
+                self.planner.drop_pos = self.target_pos
                 self.planner.sub_goals[0].target_pos = self.target_pos
             else:
                 self.planner.sub_goals[0].target_pos = self.target_pos
