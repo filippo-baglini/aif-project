@@ -1,0 +1,69 @@
+seed1:
+OUR BOT: 92 missions completed, 2300 total steps
+BABYAI BOT: 92 missions completed, 2281 total steps
+
+
+seed2:
+OUR BOT: 92 missions completed, 2435 total steps
+BABYAI BOT: 92 missions completed, 2334 total steps
+
+
+seed3:
+OUR BOT: 91 missions completed, 2445 total steps, fails livello tremendo
+BABYAI BOT: 92 missions completed, 2890 total steps
+
+
+seed4:
+OUR BOT: 92 missions completed, 2501 total steps
+BABYAI BOT: gets stuck on mission BabyAI-UnlockToUnlock-v0
+
+
+seed5: 
+OUR BOT: 92 missions completed, 2141 total steps
+BABYAI BOT: 92 missions completed, 2201 total steps
+
+
+seed6: Impossible to complete level BabyAI-GoToImpUnlock-v0, the goal is behind a locked yellow door, the yellow key is behind the locked door as well
+
+
+seed7:
+OUR BOT: 91 missions completed, 2069 total steps, fails level BossLevelNoUnlock-v0
+BABYAI BOT: gets stuck on mission BabyAI-UnlockToUnlock-v0
+
+
+seed8:
+OUR BOT: 92 missions completed, 2326 total steps
+BABYAI BOT: 92 missions completed, 2542 total steps
+
+
+seed9:
+OUR BOT: 92 missions completed, 1956 total steps
+BABYAI BOT: gets stuck on mission BabyAI-UnlockToUnlock-v0
+
+
+seed10:
+OUR BOT: 91 missions completed, 1847 total steps, fails level BabyAI-MiniBossLevel-v0
+BABYAI BOT: 92 missions completed, 2049 total steps
+
+
+seed11:
+OUR BOT: 92 missions completed, 2495 total steps
+BABYAI BOT: 92 missions completed, 2470 total steps
+
+
+seed12:
+OUR BOT: 91 missions completed, 2529 total steps, fails level BabyAI-PutNextLocalS6N4-v04
+BABYAI BOT: 92 missions completed, 2570 total steps
+
+
+seed13:
+OUR BOT: 92 missions completed, 1787 total steps
+BABYAI BOT: 92 missions completed, 2443 total steps
+
+
+seed14: Impossible to complete level BabyAI-GoToImpUnlock-v0, the goal is behind a locked red door, the red key is behind the locked door as well
+
+
+seed15:
+OUR BOT: 92 missions completed, 2343 total steps
+BABYAI BOT: 92 missions completed, 2189 total steps

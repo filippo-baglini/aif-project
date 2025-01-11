@@ -31,27 +31,27 @@ for k_i in gym.envs.registry.keys():
 
 reward_list = []
 
-
 if __name__ == "__main__":
     print(len(babyai_envs))
 
-    for i, env_id in enumerate(babyai_envs): # Loop through all environments
-        if i == 150:
-            break
+    for env_id in babyai_envs: # Loop through all environments
         print(f"Testing environment: {env_id}")
-        # env = gym.make(env_id, render_mode ="human", agent_pov = False) #Uncomment to test all the different levels with visuals
-        #env = gym.make(env_id) #Uncomment to test all the different levels without visuals
-        env = gym.make("BabyAI-MiniBossLevel-v0")
-        env.reset(seed=None) 
+        #env = gym.make(env_id, render_mode ="human", agent_pov = False) #Uncomment to test all the different levels with visuals
+        env = gym.make(env_id) #Uncomment to test all the different levels without visuals
+        #env = gym.make("BabyAI-MiniBossLevel-v0", render_mode = "human")
+        #env = gym.make("BabyAI-BossLevelNoUnlock-v0", render_mode = "human") #TIENILO
+        #env = gym.make("BabyAI-MoveTwoAcrossS8N9-v0", render_mode = "human")
+        #env = gym.make("BabyAI-BabyAI-SynthS5R2-v0", render_mode = "human")
+        env.reset(seed=15)
 
         print(env.unwrapped.mission) 
 
         bot = Bot(env)
-        max_steps = 240
+        max_steps = 500
         num_steps = 0
 
         for i in range (max_steps):
-            # time.sleep(1)
+            #time.sleep(3)
             action = bot.take_action(env)  # Call the test function
             if action == "FAILURE":
                 print(f"LIVELLO FALLITO: {env}")
@@ -66,6 +66,8 @@ if __name__ == "__main__":
                 break
         
             env.render()
+            if i == (max_steps - 1):
+                print("MAX STEPS TAKEN")
         env.close()
     
     print(reward_list)
@@ -73,5 +75,4 @@ if __name__ == "__main__":
     for i in range(len(reward_list)):
         sum_steps += reward_list[i][1] 
     print(sum_steps)
-
     print(f"Num Mission completed {len(reward_list)}")
