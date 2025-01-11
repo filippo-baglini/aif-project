@@ -1,9 +1,4 @@
-import numpy as np
-from goal_parser import understand_goal
-from environment_handler import _process_obs
-from utils import manhattan_distance
-from planner import Planner
-from minigrid.core.constants import OBJECT_TO_IDX, COLOR_TO_IDX
+from .planner import Planner
 from minigrid.envs.babyai.core.verifier import *
 
 class Bot:
@@ -19,4 +14,5 @@ class Bot:
         #First action is update plan instance 
         self.plan()
 
+        #Return the action requested by current plan subgoal
         return self.plan.execute_subgoals()

@@ -34,7 +34,7 @@ def _process_obs(env, agent_vis_mask, agent_vis_obs, door_coords):
                 else:
                     if obs_grid.get(vis_i, vis_j).encode()[0] == 4:
                          if (abs_i, abs_j) not in door_coords.keys():
-                             door_coords[abs_i, abs_j] = obs_grid.get(vis_i, vis_j).encode()[0:2]
+                             door_coords[abs_i, abs_j] = obs_grid.get(vis_i, vis_j).encode()#[0:3]
 
                     agent_vis_obs[abs_i, abs_j] = obs_grid.get(vis_i, vis_j).encode()
         

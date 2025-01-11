@@ -1,13 +1,17 @@
+import sys
+import os
+# Get the absolute path of the parent directory of the project
+script_dir = os.path.dirname(os.path.abspath(__file__))
+project_dir = os.path.abspath(os.path.join(script_dir, "../"))
+
+# Append the project directory to sys.path
+sys.path.append(project_dir)
+
 import gymnasium as gym
 
-from bot import Bot
-from goal_parser import *
-import time
-from minigrid.core.constants import OBJECT_TO_IDX, COLOR_TO_IDX
+from src.bot import Bot
+from src.goal_parser import *
 from minigrid.envs.babyai.core.verifier import *
-
-# print(OBJECT_TO_IDX)
-# print(COLOR_TO_IDX)
 
 broken_bonus_envs = {
     "BabyAI-PutNextS5N2Carrying-v0",
@@ -23,12 +27,6 @@ for k_i in gym.envs.registry.keys():
         if k_i not in broken_bonus_envs:
             babyai_envs.append(k_i)
 
-# get all minigrid envs
-minigrid_envs = []
-for k_i in gym.envs.registry.keys():
-    if k_i.split("-")[0] == "MiniGrid":
-        minigrid_envs.append(k_i)
-
 reward_list = []
 
 if __name__ == "__main__":
@@ -36,22 +34,17 @@ if __name__ == "__main__":
 
     for env_id in babyai_envs: # Loop through all environments
         print(f"Testing environment: {env_id}")
-        #env = gym.make(env_id, render_mode ="human", agent_pov = False) #Uncomment to test all the different levels with visuals
-        env = gym.make(env_id) #Uncomment to test all the different levels without visuals
-        #env = gym.make("BabyAI-PutNextS6N3-v0", render_mode = "human")
-        #env = gym.make("BabyAI-BossLevelNoUnlock-v0", render_mode = "human") #TIENILO
-        #env = gym.make("BabyAI-UnlockToUnlock-v0", render_mode = "human")
-        #env = gym.make("BabyAI-SynthS5R2-v0", render_mode = "human")
-        env.reset(seed=42)
+        env = gym.make(env_id, render_mode ="human", agent_pov = False) #Uncomment to test all the different levels with visuals
+        # env = gym.make(env_id) #Uncomment to test all the different levels without visuals
+        env.reset(seed=63)
 
         print(env.unwrapped.mission) 
 
         bot = Bot(env)
-        max_steps = 240
+        max_steps = 500
         num_steps = 0
 
         for i in range (max_steps):
-            #time.sleep(3)
             action = bot.take_action(env)  # Call the test function
             if action == "FAILURE":
                 print(f"LIVELLO FALLITO: {env}")

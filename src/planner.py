@@ -1,10 +1,10 @@
 import numpy as np
 
-from goal_parser import understand_goal
-from utils import manhattan_distance, manhattan_distance_accounting_for_walls
-from environment_handler import _process_obs
+from .goal_parser import understand_goal
+from .utils import manhattan_distance, manhattan_distance_accounting_for_walls
+from .environment_handler import _process_obs
+from .subgoals import *
 import heapq
-import time
 
 class Planner:
 
@@ -20,14 +20,12 @@ class Planner:
         self.starting_compass = self.f_vec 
 
         self.vis_mask = np.zeros(shape=(env.unwrapped.width, env.unwrapped.height), dtype=bool)
-
         self.vis_obs= np.zeros(shape=(env.unwrapped.width, env.unwrapped.height), dtype=object)
-
-        self.doors_coords = {}
-        
         for i in range(env.unwrapped.width):
             for j in range(env.unwrapped.height):
                 self.vis_obs[i, j] = (0, -1, 0)
+
+        self.doors_coords = {}
         
         self.mission = env.unwrapped.instrs
         self.actions = env.unwrapped.actions
@@ -37,13 +35,16 @@ class Planner:
 
         self.target = None
         self.path = []
+        self.save_path = []
         self.prev_frontier = None
+        self.drop_pos = None
 
         self.carrying = False
         self.carrying_object = None
+        self.carrying_target = None
+
         self.important_objects = []
         self.important_objects_coords = []
-
 
     def __call__(self):
 
@@ -54,44 +55,49 @@ class Planner:
         self.r_vec = self.env.unwrapped.right_vec
         self.vis_mask , self.vis_obs, self.doors_coords = _process_obs(self.env, self.vis_mask, self.vis_obs, self.doors_coords)
 
-
     def look_for_goal(self, goal_type, goal_color, goal_loc = None):
 
         goals = []
         min_distance = 999
         best_goal = None
-        for row_index, row in enumerate(self.vis_obs):
-            for col_index, element in enumerate(row):
-                if self.pos == (row_index, col_index):
+        for col_index, col in enumerate(self.vis_obs):
+            if col_index == 0 or col_index == len(self.vis_obs) - 1:
+                continue
+            for row_index, element in enumerate(col):
+                if row_index == 0 or row_index == len(col) - 1:
+                    continue
+                if self.pos == (col_index, row_index):
                     continue
                 if isinstance(element, tuple):
                     if goal_color is not None and goal_type is not None:
                         if element[0] == goal_type and element[1] == goal_color:
                             if goal_loc is not None: 
-                                if(self.find_relative_position(goal_loc, row_index, col_index)):
-                                   goals.append((row_index, col_index)) 
+                                if(self.find_relative_position(goal_loc, col_index, row_index)):
+                                   goals.append((col_index, row_index)) 
                             else:
-                                goals.append((row_index, col_index))
+                                goals.append((col_index, row_index))
 
                     elif goal_color is None:
                         if element[0] == goal_type:
                             if goal_loc is not None: 
-                                if (self.find_relative_position(goal_loc, row_index, col_index)):
-                                    goals.append((row_index, col_index))
+                                if (self.find_relative_position(goal_loc, col_index, row_index)):
+                                    goals.append((col_index, row_index))
                             else:
-                                goals.append((row_index, col_index))
+                                goals.append((col_index, row_index))
 
                     elif goal_type is None:
                         if element[0] != 2 and element[1] == goal_color:
                             if goal_loc is not None: 
-                                if (self.find_relative_position(goal_loc, row_index, col_index)):
-                                    goals.append((row_index, col_index))
+                                if (self.find_relative_position(goal_loc, col_index, row_index)):
+                                    goals.append((col_index, row_index))
                             else:
-                                goals.append((row_index, col_index))
+                                goals.append((col_index, row_index))
 
         for goal in goals:
-            distance = manhattan_distance(self.pos, goal) #UNCOMMENTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT
-            #distance = manhattan_distance_accounting_for_walls(self.pos, goal, self.vis_obs)
+            if goal_loc is not None:
+                distance = manhattan_distance(self.starting_pos, goal)
+            else:
+                distance = manhattan_distance(self.pos, goal)
             if (distance < min_distance):
                 min_distance = distance
                 best_goal = goal
@@ -116,14 +122,13 @@ class Planner:
         # g-scores (costs to reach each cell)
         g_score = {self.pos: 0}
         f_score = {self.pos: manhattan_distance(self.pos, target)}
-        #f_score = {self.pos: manhattan_distance_accounting_for_walls(self.pos, target, self.vis_obs)}
         # Path tracking
         came_from = {}
 
         while open_set:
             
             # Pop the cell with the lowest f-score
-            current_f, current = heapq.heappop(open_set)
+            _, current = heapq.heappop(open_set)
 
             # Goal reached
             if current == target:
@@ -175,14 +180,12 @@ class Planner:
                         # Update g-score and f-score
                         g_score[neighbor] = tentative_g
                         f_score = tentative_g + manhattan_distance(neighbor, target)
-                        #f_score = tentative_g + manhattan_distance_accounting_for_walls(neighbor, target, self.vis_obs)
                         heapq.heappush(open_set, (f_score, neighbor))
                         came_from[neighbor] = current
 
         # No path found
         print("Path not found")
-        time.sleep(5000000)
-        return None
+        return "FAILURE"
     
     def neighbors(self,cell):
             """Return valid neighbors (up, down, left, right)."""
@@ -210,7 +213,7 @@ class Planner:
         # Iterate through the path
         if (len(self.path) == 0):
             print("PROBLEM, A* RETURNED A PATH OF LENGTH 0, NEED TO DEBUG")
-            time.sleep(1000)
+            return "FAILURE"
         
         cell_pos = self.path[0]
         pos = self.pos
@@ -230,7 +233,7 @@ class Planner:
             if self.carrying:
                 prev_cell = self.pos
                 if self.pos in self.doors_coords.keys():
-                    self.vis_obs[prev_cell[0], prev_cell[1]] = (*self.doors_coords[self.pos], 0)
+                    self.vis_obs[prev_cell[0], prev_cell[1]] = (*self.doors_coords[self.pos],)
                 else:
                     self.vis_obs[prev_cell[0], prev_cell[1]] = (1, -1, 0)
 
@@ -238,6 +241,9 @@ class Planner:
             return self.actions.forward
         
         elif np.array_equal(direction_to_cell, np.array(f_vec)) and cell_pos == target:
+            if self.step_is_blocked(cell_pos) and self.target_in_cell(self.cell_in_front(), self.sub_goals[0].target) != self.sub_goals[0].target:
+                return "BLOCKED"
+            
             self.path.pop(0)
             return self.actions.done
         
@@ -261,35 +267,33 @@ class Planner:
             print("Unexpected state. Cannot determine action.")
             return "FAILURE"
 
-    def find_frontiers(self, exclude_frontier = None):
+    def find_frontiers(self, exclude_frontier = None): #Function for finding frontier for exploration
 
         target = None
-        rows, cols = self.vis_mask.shape
+        cols, rows = self.vis_mask.shape
         unseen_cells = []
         min_distance = 999
-        for r in range(rows):
-            if r == 0 or r == rows - 1: #Avoid considering first and last row as frontier (the edges of the grid are always walls)
+        for c in range(cols):
+            if c == 0 or c == cols - 1: #Avoid considering first and last column as frontier (the edges of the grid are always walls)
                 continue
-            for c in range(cols):
-                if c == 0 or c == cols - 1: #Avoid considering first and last column as frontier (the edges of the grid are always walls)
+            for r in range(rows):
+                if r == 0 or r == rows - 1: #Avoid considering first and last column as frontier (the edges of the grid are always walls)
                     continue
-                if not self.vis_mask[r, c]:
-                    neighbors = self.neighbors([r, c])
-                    for nr, nc in neighbors:
-                        if  self.vis_mask[nr, nc] == 1:  #Adjacent to seen cell
-                            #if self.vis_obs[nr, nc][0] != 2 and self.vis_obs[nr, nc][2] != 2: #Dont move towards a frontier cell that is behind a wall
-                            if self.vis_obs[nr, nc][0] != 2:
-                                if (exclude_frontier is not None and exclude_frontier == (r, c)):
+                if not self.vis_mask[c, r]:
+                    neighbors = self.neighbors([c, r])
+                    for nc, nr in neighbors:
+                        if self.vis_mask[nc, nr] == 1:  #Adjacent to seen cell
+                            if self.vis_obs[nc, nr][0] != 2:
+                                if (exclude_frontier is not None and exclude_frontier == (c, r)):
                                     break
-                                unseen_cell = (r, c) #remeber self.vis_mask has rows and columns inverted compared to visual render
+                                unseen_cell = (c, r) #remeber self.vis_mask has rows and columns inverted compared to visual render
                                 unseen_cells.append(unseen_cell)
                                 break
+
         for cell in unseen_cells:
             if any(self.vis_obs[n[0], n[1]][2] == 2 for n in self.neighbors(cell)):
-                #distance = manhattan_distance(self.pos, cell) + 10
-                distance = manhattan_distance_accounting_for_walls(self.pos, cell, self.vis_obs) + 20
+                distance = manhattan_distance_accounting_for_walls(self.pos, cell, self.vis_obs) + 100
             else:
-                #distance = manhattan_distance(self.pos, cell)
                 distance = manhattan_distance_accounting_for_walls(self.pos, cell, self.vis_obs)
             if distance < min_distance:
                 min_distance = distance
@@ -302,20 +306,27 @@ class Planner:
         return new_frontier
 
     
-    def find_closest_empty_cell(self, cell, reason=None):
+    def find_closest_empty_cell(self, cell, reason=None): 
 
         neighbors = self.neighbors(cell)
         empty_cell = []
         empty_cell_distance = []
-        for row_index, row in enumerate(self.vis_obs):
-            for col_index, element in enumerate(row):
-                if self.pos == (row_index, col_index):
+        for col_index, col in enumerate(self.vis_obs):
+            if col_index == 0 or col_index == len(self.vis_obs) - 1:
+                continue
+            for row_index, element in enumerate(col):
+                if row_index == 0 or row_index == len(col) - 1:
+                    continue
+                if self.pos == (col_index, row_index):
                     continue
 
-                if self.vis_obs[row_index, col_index][0] == 1:
-                    empty_cell.append((row_index, col_index))
-                    empty_cell_distance.append(manhattan_distance(cell, (row_index, col_index)))
-                    #empty_cell_distance.append(manhattan_distance_accounting_for_walls(cell, (row_index, col_index), self.vis_obs))
+                if self.vis_obs[col_index, row_index][0] == 1:
+                    if self.drop_pos is not None and (col_index, row_index) == self.drop_pos:
+                        pass
+
+                    else:
+                        empty_cell.append((col_index, row_index))
+                        empty_cell_distance.append(manhattan_distance(cell, (col_index, row_index)))
 
         if reason is None:
             for empty in empty_cell:
@@ -333,51 +344,120 @@ class Planner:
         if best_cell:
             return best_cell
     
-    def find_closest_drop_cell(self, cell, reason=None):
 
-        if cell == self.pos:
-            if self.object_in_front()[0] == 1:
-                return self.cell_in_front()
-            
+    def find_closest_drop_cell(self, cell, reason=None):
+    
         min_distance = 999
         empty_cells = []
-        best_empty_cells = []
-        for row_index, row in enumerate(self.vis_obs):
-            for col_index, element in enumerate(row):
-                if self.pos == (row_index, col_index):
-                    continue
+        blocked_cells = []
 
-                if self.vis_obs[row_index, col_index][0] == 1:
-                    empty_cells.append((row_index, col_index))
-        
-        for empty_cell in empty_cells:
-            distance = manhattan_distance(cell, empty_cell)
-            #distance = manhattan_distance_accounting_for_walls(cell, empty_cell, self.vis_obs)
-            if distance < min_distance:
-                best_empty_cells = [empty_cell]
-                min_distance = distance
-            elif distance == min_distance:
-                best_empty_cells.append(empty_cell)
+        for n in self.neighbors(cell):
 
-        min_distance = 999
-        for empty_cell in best_empty_cells:
-            if empty_cell == self.pos:
-                    continue
-            distance = manhattan_distance(self.pos, empty_cell)
-            #distance = manhattan_distance_accounting_for_walls(self.pos, empty_cell, self.vis_obs)
-            if distance < min_distance:
-                best_cell = empty_cell
-                min_distance = distance
+            if n == self.pos:
+                continue
+            
+            if self.vis_obs[n[0], n[1]][0] in (5, 6, 7):
+                blocked_cells.append(n)
+            
+            if self.vis_obs[n[0], n[1]][0] == 1:
+                empty_cells.append(n)
+
+        if len(empty_cells) == 0:
+            min_distance = 999
+            for blocked_cell in blocked_cells:
+                distance = manhattan_distance(self.pos, blocked_cell)
+                if distance < min_distance:
+                    best_cell = blocked_cell
+                    min_distance = distance
+        else:
+            min_distance = 999
+            for empty_cell in empty_cells:
+                distance = manhattan_distance(self.pos, empty_cell)
+                if distance < min_distance:
+                    best_cell = empty_cell
+                    min_distance = distance
 
         return best_cell
+
+    def find_closest_empty_cell_avoiding_previous_path(self, cell):
+        neighbors = self.neighbors(cell)
+        empty_cell = []
+        empty_cell_distance = []
+        for col_index, col in enumerate(self.vis_obs):
+            if col_index == 0 or col_index == len(self.vis_obs) - 1:
+                continue
+            for row_index, element in enumerate(col):
+                if row_index == 0 or row_index == len(col) - 1:
+                    continue
+                if self.pos == (col_index, row_index):
+                    continue
+
+                if self.vis_obs[col_index, row_index][0] == 1:
+                    if self.drop_pos is not None and (col_index, row_index) == self.drop_pos:
+                        pass
+                    elif (col_index, row_index) in self.save_path:
+                        pass
+                    else:
+                        empty_cell.append((col_index, row_index))
+                        empty_cell_distance.append(manhattan_distance(cell, (col_index, row_index)))
+
+        for empty in empty_cell:
+            if empty in neighbors:
+                if empty == self.cell_in_front():
+                    return empty
+
+        best_cell = None
+        lowest_distance = float("inf")
+        for i, e in enumerate(empty_cell):
+            if empty_cell_distance[i] < lowest_distance:
+                lowest_distance = empty_cell_distance[i]
+                best_cell = e
+
+        if best_cell:
+            return best_cell
 
 
     def cell_in_front(self):
         return (self.pos[0] + self.f_vec[0], self.pos[1] + self.f_vec[1])
     
-
     def object_in_front(self):
         return self.vis_obs[self.cell_in_front()]
+
+    def door_in_cell(self, cell):
+        return [self.vis_obs[cell[0], cell[1]][0], self.vis_obs[cell[0], cell[1]][1], None]
+    
+    def target_in_front(self):
+        return [self.object_in_front()[0], self.object_in_front()[1], None]
+    
+    def target_in_cell(self, cell, target):
+
+        target_type = target[0] if target is not None else None
+        target_color = target[1] if target is not None else None
+        target_loc = target[2] if target is not None else None
+
+        if target_type is not None and target_color is not None:
+            
+            if target_loc is not None:
+                
+                if self.find_relative_position(target_loc, cell[0], cell[1]):
+                    return [self.vis_obs[cell][0], self.vis_obs[cell][1], target_loc]
+
+            else:
+                return [self.vis_obs[cell][0], self.vis_obs[cell][1], None]
+            
+        elif target_type is not None:
+            if target_loc is not None:
+                if self.find_relative_position(target_loc, cell[0], cell[1]):
+                    return [self.vis_obs[cell][0], None, target_loc]
+            else:
+                return [self.vis_obs[cell][0], None, None]
+            
+        elif target_color is not None:
+            if target_loc is not None:
+                if self.find_relative_position(target_loc, cell[0], cell[1]):
+                    return [None, self.vis_obs[cell][1], target_loc]
+            else:
+                return [None, self.vis_obs[cell][1], None]
     
 
     def step_is_blocked(self, cell):
@@ -386,75 +466,79 @@ class Planner:
                 return True
         return False
     
-
     def step_is_door(self, cell):
         if self.vis_obs[cell[0], cell[1]][0] == 4 and self.vis_obs[cell[0], cell[1]][2] == 1:
             return True
         return False
-
-
-    def execute_subgoals(self):
-        #print(f"Subgoals: {self.sub_goals}")
-        if self.sub_goals:
-            current_subgoal = self.sub_goals[0]
-            #print(f"Executing subgoal: {current_subgoal}")
-            action = current_subgoal()
-            
-            if action is self.actions.done:
-                #print("Subgoal completed")
-                action = self.execute_subgoals()
-                
-            # print(f"returning action: {action}")
-            return action
-
-        else:
-            print("All subgoals completed")
-            return "FAILURE"
     
-    def find_relative_position(self, goal_loc, goal_row, goal_col): #RIGUARDA TUTTE LE CONDIZIONI!!!!!!!!!!!
 
-        relative_position = (goal_row - self.starting_pos[0], goal_col - self.starting_pos[1])
+    def find_relative_position(self, goal_loc, goal_col, goal_row): #Used for env where we need to find the relative position of the goal to the agent's starting position
+
+        relative_position = (goal_col - self.starting_pos[0], goal_row - self.starting_pos[1])
 
         if (goal_loc == "front"):
-            if (relative_position[0] < 0 and np.array_equal(self.starting_compass, [0, -1])): #front, up
+            if (relative_position[1] < 0 and np.array_equal(self.starting_compass, [0, -1])): #TARGET IS HIGHER THAN THE AGENT'S STARTING POSITION AND AGENT'S STARTING DIRECTION WAS UP
                 return True
-            elif (relative_position[0] > 0 and np.array_equal(self.starting_compass, [0, 1])): #front, down
+            elif (relative_position[1] > 0 and np.array_equal(self.starting_compass, [0, 1])): #TARGET IS LOWER THAN THE AGENT'S STARTING POSITION AND AGENT'S STARTING DIRECTION WAS DOWN
                 return True
-            elif (relative_position[1] < 0 and np.array_equal(self.starting_compass, [-1, 0])): #front, left
+            elif (relative_position[0] < 0 and np.array_equal(self.starting_compass, [-1, 0])): #TARGET IS TO THE LEFT OF THE AGENT'S STARTING POSITION AND AGENT'S STARTING DIRECTION WAS LEFT
                 return True
-            elif (relative_position[1] > 0 and np.array_equal(self.starting_compass, [1, 0])): #front, right
+            elif (relative_position[0] > 0 and np.array_equal(self.starting_compass, [1, 0])): #TARGET IS TO THE RIGHT OF THE AGENT'S STARTING POSITION AND AGENT'S STARTING DIRECTION WAS RIGHT
                 return True
             return False
         
         elif (goal_loc == "behind"):
-            if (relative_position[0] < 0 and np.array_equal(self.starting_compass, [0, 1])): #front, down
+            if (relative_position[1] < 0 and np.array_equal(self.starting_compass, [0, 1])): #TARGET IS HIGHER THAN THE AGENT'S STARTING POSITION AND AGENT'S STARTING DIRECTION WAS DOWN
                 return True
-            elif (relative_position[0] > 0 and np.array_equal(self.starting_compass, [0, -1])): #front, up
+            elif (relative_position[1] > 0 and np.array_equal(self.starting_compass, [0, -1])): #TARGET IS LOWER THAN THE AGENT'S STARTING POSITION AND AGENT'S STARTING DIRECTION WAS UP
                 return True
-            elif (relative_position[1] < 0 and np.array_equal(self.starting_compass, [1, 0])): #front, right
+            elif (relative_position[0] < 0 and np.array_equal(self.starting_compass, [1, 0])): #TARGET IS TO THE LEFT OF THE AGENT'S STARTING POSITION AND AGENT'S STARTING DIRECTION WAS RIGHT
                 return True
-            elif (relative_position[1] > 0 and np.array_equal(self.starting_compass, [-1, 0])): #front, left
+            elif (relative_position[0] > 0 and np.array_equal(self.starting_compass, [-1, 0])): #TARGET IS TO THE RIGHT OF THE AGENT'S STARTING POSITION AND AGENT'S STARTING DIRECTION WAS LEFT
                 return True
             return False
         
         elif (goal_loc == "left"):
-            if (relative_position[0] < 0 and np.array_equal(self.starting_compass, [0, -1])): #front, up
+            if (relative_position[1] < 0 and np.array_equal(self.starting_compass, [1, 0])): #TARGET IS HIGHER THAN THE AGENT'S STARTING POSITION AND AGENT'S STARTING DIRECTION WAS RIGHT
                 return True
-            elif (relative_position[0] > 0 and np.array_equal(self.starting_compass, [0, 1])): #front, down
+            elif (relative_position[1] > 0 and np.array_equal(self.starting_compass, [-1, 0])): #TARGET IS LOWER THAN THE AGENT'S STARTING POSITION AND AGENT'S STARTING DIRECTION WAS LEFT
                 return True
-            elif (relative_position[1] > 0 and np.array_equal(self.starting_compass, [-1, 0])): #front, left
+            elif (relative_position[0] < 0 and np.array_equal(self.starting_compass, [0, -1])): #TARGET IS TO THE LEFT OF THE AGENT'S STARTING POSITION AND AGENT'S STARTING DIRECTION WAS UP
                 return True
-            elif (relative_position[1] < 0 and np.array_equal(self.starting_compass, [1, 0])): #front, right
+            elif (relative_position[0] > 0 and np.array_equal(self.starting_compass, [0, 1])): #TARGET IS TO THE RIGHT OF THE AGENT'S STARTING POSITION AND AGENT'S STARTING DIRECTION WAS DOWN
                 return True
             return False
         
         elif (goal_loc == "right"):
-            if (relative_position[0] > 0 and np.array_equal(self.starting_compass, [0, -1])): #front, up
+            if (relative_position[1] < 0 and np.array_equal(self.starting_compass, [-1, 0])): #TARGET IS HIGHER THAN THE AGENT'S STARTING POSITION AND AGENT'S STARTING DIRECTION WAS LEFT
                 return True
-            elif (relative_position[0] < 0 and np.array_equal(self.starting_compass, [0, 1])): #front, down
+            elif (relative_position[1] > 0 and np.array_equal(self.starting_compass, [1, 0])): #TARGET IS LOWER THAN THE AGENT'S STARTING POSITION AND AGENT'S STARTING DIRECTION WAS RIGHT
                 return True
-            elif (relative_position[1] < 0 and np.array_equal(self.starting_compass, [-1, 0])): #front, left
+            elif (relative_position[0] < 0 and np.array_equal(self.starting_compass, [0, 1])): #TARGET IS TO THE LEFT OF THE AGENT'S STARTING POSITION AND AGENT'S STARTING DIRECTION WAS DOWN
                 return True
-            elif (relative_position[1] > 0 and np.array_equal(self.starting_compass, [1, 0])): #front, right
+            elif (relative_position[0] > 0 and np.array_equal(self.starting_compass, [0, -1])): #TARGET IS TO THE RIGHT OF THE AGENT'S STARTING POSITION AND AGENT'S STARTING DIRECTION WAS UP
                 return True
             return False
+        
+
+
+    def execute_subgoals(self):
+        if len(self.sub_goals) > 500:
+            print("Infinite recursion, something is wrong")
+            return "FAILURE"
+        
+        if self.sub_goals:
+            current_subgoal = self.sub_goals[0]
+            action = current_subgoal()
+            
+            if action is self.actions.done:
+                action = self.execute_subgoals()
+
+            if action == "FAILURE":
+                return "FAILURE"
+                
+            return action
+
+        else:
+            print("All subgoals completed, but mission is not terminated")
+            return "FAILURE"
