@@ -245,8 +245,8 @@ class Planner:
         
         elif np.array_equal(direction_to_cell, np.array(f_vec)) and cell_pos == target:
             if self.step_is_blocked(cell_pos) and self.target_in_cell(self.cell_in_front(), self.sub_goals[0].target) != self.sub_goals[0].target:
-                print(f"object in front: {self.target_in_cell(self.cell_in_front(), self.sub_goals[0].target)}")
-                print(f"subgoal target: {self.sub_goals[0].target}")
+                # print(f"object in front: {self.target_in_cell(self.cell_in_front(), self.sub_goals[0].target)}")
+                # print(f"subgoal target: {self.sub_goals[0].target}")
 
                 return "BLOCKED"
             self.path.pop(0)
@@ -322,7 +322,7 @@ class Planner:
 
                 if self.vis_obs[row_index, col_index][0] == 1:
                     if self.drop_pos is not None and (row_index, col_index) == self.drop_pos:
-                        print("Entrato", self.drop_pos)
+                        # print("Entrato", self.drop_pos)
                         pass
                     else:
                         empty_cell.append((row_index, col_index))
