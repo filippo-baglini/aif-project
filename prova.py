@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import gymnasium as gym
-import pytest
+
 
 from minigrid.utils.baby_ai_bot import BabyAIBot
 
@@ -21,7 +21,7 @@ for k_i in gym.envs.registry.keys():
             babyai_envs.append(k_i)
 
 result_list = []
-@pytest.mark.parametrize("env_id", babyai_envs)
+
 def test_bot(env_id):
     """
     The BabyAI Bot should be able to solve all BabyAI environments,
@@ -31,17 +31,17 @@ def test_bot(env_id):
     env = gym.make(env_id)
     #env = gym.make("BabyAI-UnlockToUnlock-v0", render_mode = "human")
     #env = gym.make("BabyAI-Unlock-v0", render_mode = "human")
-    #env = gym.make("BabyAI-GoToImpUnlock-v0", render_mode = "human")
+    env = gym.make("BabyAI-BossLevelNoUnlock-v0", render_mode = "human")
     #env = gym.make("BabyAI-MiniBossLevel-v0", render_mode="human") # for visual debugging
 
     # reset env
-    curr_seed = 0
+    curr_seed = 7
 
     num_steps = 500
     steps = 0
     terminated = False
     while not terminated:
-        env.reset(seed=15)
+        env.reset(seed=7)
         #print (env.observation_space)
 
         # create expert bot

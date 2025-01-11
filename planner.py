@@ -37,11 +37,14 @@ class Planner:
 
         self.target = None
         self.path = []
+        self.save_path = []
         self.prev_frontier = None
         self.drop_pos = None
 
         self.carrying = False
         self.carrying_object = None
+        self.carrying_target = None
+
         self.important_objects = []
         self.important_objects_coords = []
 
@@ -91,12 +94,15 @@ class Planner:
                                 goals.append((row_index, col_index))
 
         for goal in goals:
-            distance = manhattan_distance(self.pos, goal)
-            distance = manhattan_distance_accounting_for_walls(self.pos, goal, self.vis_obs)
+            if goal_loc is not None:
+                distance = manhattan_distance(self.starting_pos, goal)
+            else:
+                distance = manhattan_distance(self.pos, goal)
+            #distance = manhattan_distance_accounting_for_walls(self.pos, goal, self.vis_obs)
             if (distance < min_distance):
                 min_distance = distance
                 best_goal = goal
-                
+
         return best_goal
 
     def a_star_search(self, target):
@@ -238,6 +244,11 @@ class Planner:
             return self.actions.forward
         
         elif np.array_equal(direction_to_cell, np.array(f_vec)) and cell_pos == target:
+            if self.step_is_blocked(cell_pos) and self.target_in_cell(self.cell_in_front(), self.sub_goals[0].target) != self.sub_goals[0].target:
+                print(f"object in front: {self.target_in_cell(self.cell_in_front(), self.sub_goals[0].target)}")
+                print(f"subgoal target: {self.sub_goals[0].target}")
+
+                return "BLOCKED"
             self.path.pop(0)
             return self.actions.done
         
@@ -333,39 +344,106 @@ class Planner:
         if best_cell:
             return best_cell
     
-    def find_closest_drop_cell(self, cell, reason=None):
+    # def find_closest_drop_cell(self, cell, reason=None):
 
-        if cell == self.pos:
-            if self.object_in_front()[0] == 1:
-                return self.cell_in_front()
+    #     if cell == self.pos:
+    #         if self.object_in_front()[0] == 1:
+    #             return self.cell_in_front()
             
+    #     min_distance = 999
+    #     empty_cells = []
+    #     best_empty_cells = []
+    #     for row_index, row in enumerate(self.vis_obs):
+    #         for col_index, col in enumerate(row):
+    #             if self.pos == (row_index, col_index):
+    #                 continue
+
+    #             if self.vis_obs[row_index, col_index][0] == 1:
+    #                 empty_cells.append((row_index, col_index))
+        
+    #     for empty_cell in empty_cells:
+    #         distance = manhattan_distance(cell, empty_cell)
+    #         if distance < min_distance:
+    #             best_empty_cells = [empty_cell]
+    #             min_distance = distance
+    #         elif distance == min_distance:
+    #             best_empty_cells.append(empty_cell)
+
+    #     min_distance = 999
+    #     for empty_cell in best_empty_cells:
+    #         distance = manhattan_distance(self.pos, empty_cell)
+    #         if distance < min_distance:
+    #             best_cell = empty_cell
+    #             min_distance = distance
+
+    #     return best_cell
+
+    def find_closest_drop_cell(self, cell, reason=None):
+    
         min_distance = 999
         empty_cells = []
         best_empty_cells = []
+        blocked_cells = []
+
+        for n in self.neighbors(cell):
+
+            if self.vis_obs[n[0], n[1]][0] in (5, 6, 7):
+                blocked_cells.append(n)
+            
+            if self.vis_obs[n[0], n[1]][0] == 1:
+                print(f"empty cell: {n}")
+                empty_cells.append(n)
+        
+        if len(empty_cells) == 0:
+
+            min_distance = 999
+            for blocked_cell in blocked_cells:
+                distance = manhattan_distance(self.pos, blocked_cell)
+                if distance < min_distance:
+                    best_cell = blocked_cell
+                    min_distance = distance
+        else:
+
+            min_distance = 999
+            for empty_cell in empty_cells:
+                distance = manhattan_distance(self.pos, empty_cell)
+                if distance < min_distance:
+                    best_cell = empty_cell
+                    min_distance = distance
+
+        return best_cell
+
+    def find_closest_empy_cell_avoiding_previous_path(self, cell):
+        neighbors = self.neighbors(cell)
+        empty_cell = []
+        empty_cell_distance = []
         for row_index, row in enumerate(self.vis_obs):
-            for col_index, col in enumerate(row):
+            for col_index, element in enumerate(row):
                 if self.pos == (row_index, col_index):
                     continue
 
                 if self.vis_obs[row_index, col_index][0] == 1:
-                    empty_cells.append((row_index, col_index))
-        
-        for empty_cell in empty_cells:
-            distance = manhattan_distance(cell, empty_cell)
-            if distance < min_distance:
-                best_empty_cells = [empty_cell]
-                min_distance = distance
-            elif distance == min_distance:
-                best_empty_cells.append(empty_cell)
+                    if self.drop_pos is not None and (row_index, col_index) == self.drop_pos:
+                        pass
+                    else:
+                        empty_cell.append((row_index, col_index))
+                        empty_cell_distance.append(manhattan_distance(cell, (row_index, col_index)))
 
-        min_distance = 999
-        for empty_cell in best_empty_cells:
-            distance = manhattan_distance(self.pos, empty_cell)
-            if distance < min_distance:
-                best_cell = empty_cell
-                min_distance = distance
 
-        return best_cell
+        for empty in empty_cell:
+            if empty in neighbors:
+                if empty == self.cell_in_front():
+                    return empty
+
+        best_cell = None
+        lowest_distance = float("inf")
+        for i, e in enumerate(empty_cell):
+            if empty_cell_distance[i] < lowest_distance:
+                lowest_distance = empty_cell_distance[i]
+                best_cell = e
+
+        if best_cell:
+            return best_cell
 
 
     def cell_in_front(self):
@@ -374,6 +452,43 @@ class Planner:
 
     def object_in_front(self):
         return self.vis_obs[self.cell_in_front()]
+
+    def door_in_cell(self, cell):
+        return [self.vis_obs[cell[0], cell[1]][0], self.vis_obs[cell[0], cell[1]][1], None]
+    
+    def target_in_front(self):
+        return [self.object_in_front()[0], self.object_in_front()[1], None]
+    
+    def target_in_cell(self, cell, target):
+
+        
+        target_type= target[0]
+        target_color = target[1]
+        target_loc = target[2]
+
+        if target_type is not None and target_color is not None:
+            
+            if target_loc is not None:
+                
+                if self.find_relative_position(target_loc, cell[0], cell[1]):
+                    return [self.vis_obs[cell][0], self.vis_obs[cell][1], target_loc]
+
+            else:
+                return [self.vis_obs[cell][0], self.vis_obs[cell][1], None]
+            
+        elif target_type is not None:
+            if target_loc is not None:
+                if self.find_relative_position(target_loc, cell[0], cell[1]):
+                    return [self.vis_obs[cell][0], None, target_loc]
+            else:
+                return [self.vis_obs[cell][0], None, None]
+            
+        elif target_color is not None:
+            if target_loc is not None:
+                if self.find_relative_position(target_loc, cell[0], cell[1]):
+                    return [None, self.vis_obs[cell][1], target_loc]
+            else:
+                return [None, self.vis_obs[cell][1], None]
     
 
     def step_is_blocked(self, cell):
@@ -390,7 +505,7 @@ class Planner:
 
 
     def execute_subgoals(self):
-        #print(f"Subgoals: {self.sub_goals}")
+        # print(f"Subgoals: {self.sub_goals}")
         if self.sub_goals:
             current_subgoal = self.sub_goals[0]
             #print(f"Executing subgoal: {current_subgoal}")
@@ -405,7 +520,7 @@ class Planner:
 
         else:
             print("All subgoals completed")
-            return "FAILURE"
+            return "COMPLETED"
     
     def find_relative_position(self, goal_loc, goal_row, goal_col): #RIGUARDA TUTTE LE CONDIZIONI!!!!!!!!!!!
 
