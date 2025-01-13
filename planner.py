@@ -40,6 +40,7 @@ class Planner:
         self.save_path = []
         self.prev_frontier = None
         self.drop_pos = None
+        self.prev_empty_cell = []
 
         self.carrying = False
         self.carrying_object = None
@@ -324,6 +325,8 @@ class Planner:
                     if self.drop_pos is not None and (row_index, col_index) == self.drop_pos:
                         # print("Entrato", self.drop_pos)
                         pass
+                    elif (row_index, col_index) in self.prev_empty_cell:
+                        pass
                     else:
                         empty_cell.append((row_index, col_index))
                         empty_cell_distance.append(manhattan_distance(cell, (row_index, col_index)))
@@ -410,10 +413,16 @@ class Planner:
 
             min_distance = 999
             for empty_cell in empty_cells:
+                # direction_to_cell = (empty_cell[0] - cell[0], empty_cell[1] - cell[1])
+                # print(f"direction to cell: {direction_to_cell}")
+                # print(f"f_vec: {self.f_vec}")
                 distance = manhattan_distance(self.pos, empty_cell)
                 if distance < min_distance:
                     best_cell = empty_cell
                     min_distance = distance
+                # elif distance == min_distance and np.array_equal(direction_to_cell, np.array(self.f_vec)) :
+                #     best_cell = empty_cell
+                #     min_distance = distance
 
         return best_cell
 
