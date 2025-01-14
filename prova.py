@@ -29,10 +29,11 @@ def test_bot(env_id):
     """
     # Use the parameter env_id to make the environment
     env = gym.make(env_id)
-    #env = gym.make("BabyAI-UnlockToUnlock-v0", render_mode = "human")
+    env = gym.make("BabyAI-UnlockToUnlock-v0", render_mode = "human")
     #env = gym.make("BabyAI-Unlock-v0", render_mode = "human")
     #env = gym.make("BabyAI-GoToImpUnlock-v0", render_mode = "human")
-    #env = gym.make("BabyAI-MiniBossLevel-v0", render_mode="human") # for visual debugging
+    # env = gym.make("BabyAI-BossLevelNoUnlock-v0", render_mode="human") # for visual debugging
+    # env = gym.make("BabyAI-SynthS5R2-v0", render_mode = "human")
 
     # reset env
     curr_seed = 0
@@ -41,7 +42,7 @@ def test_bot(env_id):
     steps = 0
     terminated = False
     while not terminated:
-        env.reset(seed=15)
+        env.reset(seed=4)
         #print (env.observation_space)
 
         # create expert bot
@@ -51,6 +52,7 @@ def test_bot(env_id):
         last_action = None
         for _step in range(num_steps):
             action = expert.replan(last_action)
+            print("AZIONE: ", action)
             obs, reward, terminated, truncated, info = env.step(action)
             steps += 1
             last_action = action
