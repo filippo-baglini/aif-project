@@ -48,7 +48,7 @@ if __name__ == "__main__":
         #env = gym.make("BabyAI-BlockedUnlockPickup-v0", render_mode = "human")
         #env = gym.make("BabyAI-SynthS5R2-v0", render_mode = "human")
         
-        env.reset(seed=3)
+        env.reset(seed=1)
         #time.sleep(1000)
 
         print(env.unwrapped.mission) 
