@@ -41,14 +41,10 @@ if __name__ == "__main__":
         completed_missions = 0
 
         for j, env_id in enumerate(babyai_envs):  # Loop through all environments
-            print(f"Testing environment: {env_id}")
 
             # Create environment
             env = gym.make(env_id)
             env.reset(seed=seed)
-
-            # Print the mission description
-            print(env.unwrapped.mission)
 
             bot = Bot(env)
             max_steps = 500
@@ -66,11 +62,13 @@ if __name__ == "__main__":
                 if terminated:
                     total_steps += num_steps
                     completed_missions += 1
+
                     break
 
                 if i == (max_steps - 1):
                     print("Max steps taken")
-            print(f"-----------------------{seed}---{j}----------------------")
+            print(f"-----------------------seed-{seed}---lvl-{j}---env:{env_id}----------------")
+
             env.close()
 
         # Save results for this seed
@@ -82,7 +80,7 @@ if __name__ == "__main__":
         print(f"Seed {seed}: Total Steps = {results['total_steps']}, Completed Missions = {results['completed_missions']}")
 
     # Save results to a file
-    with open("../results/OurBot_results.txt", "w") as file:
-        for seed, results in seed_results.items():
-            file.write(f"Seed {seed}: Total Steps = {results['total_steps']}, Completed Missions = {results['completed_missions']}\n")
+    # with open("../results/OurBot_results.txt", "w") as file:
+    #     for seed, results in seed_results.items():
+    #         file.write(f"Seed {seed}: Total Steps = {results['total_steps']}, Completed Missions = {results['completed_missions']}\n")
 

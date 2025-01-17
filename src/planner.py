@@ -267,7 +267,7 @@ class Planner:
             print("Unexpected state. Cannot determine action.")
             return "FAILURE"
 
-    def find_frontiers(self, exclude_frontier = None):
+    def find_frontiers(self, exclude_frontier = None): #Function for finding frontier for exploration
 
         target = None
         cols, rows = self.vis_mask.shape
@@ -306,7 +306,7 @@ class Planner:
         return new_frontier
 
     
-    def find_closest_empty_cell(self, cell, reason=None):
+    def find_closest_empty_cell(self, cell, reason=None): 
 
         neighbors = self.neighbors(cell)
         empty_cell = []
@@ -470,31 +470,9 @@ class Planner:
         if self.vis_obs[cell[0], cell[1]][0] == 4 and self.vis_obs[cell[0], cell[1]][2] == 1:
             return True
         return False
-
-
-    def execute_subgoals(self):
-        if len(self.sub_goals) > 500:
-            print("Infinite recursion, something is wrong")
-            return "FAILURE"
-        
-        if self.sub_goals:
-            current_subgoal = self.sub_goals[0]
-            action = current_subgoal()
-            
-            if action is self.actions.done:
-                action = self.execute_subgoals()
-
-            if action == "FAILURE":
-                return "FAILURE"
-                
-            return action
-
-        else:
-            print("All subgoals completed, but mission is not terminated")
-            return "FAILURE"
     
 
-    def find_relative_position(self, goal_loc, goal_col, goal_row):
+    def find_relative_position(self, goal_loc, goal_col, goal_row): #Used for env where we need to find the relative position of the goal to the agent's starting position
 
         relative_position = (goal_col - self.starting_pos[0], goal_row - self.starting_pos[1])
 
@@ -541,3 +519,26 @@ class Planner:
             elif (relative_position[0] > 0 and np.array_equal(self.starting_compass, [0, -1])): #TARGET IS TO THE RIGHT OF THE AGENT'S STARTING POSITION AND AGENT'S STARTING DIRECTION WAS UP
                 return True
             return False
+        
+
+
+    def execute_subgoals(self):
+        if len(self.sub_goals) > 500:
+            print("Infinite recursion, something is wrong")
+            return "FAILURE"
+        
+        if self.sub_goals:
+            current_subgoal = self.sub_goals[0]
+            action = current_subgoal()
+            
+            if action is self.actions.done:
+                action = self.execute_subgoals()
+
+            if action == "FAILURE":
+                return "FAILURE"
+                
+            return action
+
+        else:
+            print("All subgoals completed, but mission is not terminated")
+            return "FAILURE"

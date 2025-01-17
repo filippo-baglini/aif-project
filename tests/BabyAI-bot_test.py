@@ -8,7 +8,6 @@ project_dir = os.path.abspath(os.path.join(script_dir, "../"))
 sys.path.append(project_dir)
 
 import gymnasium as gym
-import pytest
 
 from minigrid.utils.baby_ai_bot import BabyAIBot
 
@@ -32,7 +31,6 @@ for k_i in gym.envs.registry.keys():
             babyai_envs.append(k_i)
 
 result_list = []
-@pytest.mark.parametrize("env_id", babyai_envs)
 def test_bot(env_id):
     """
     The BabyAI Bot should be able to solve all BabyAI environments,

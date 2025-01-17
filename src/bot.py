@@ -14,4 +14,5 @@ class Bot:
         #First action is update plan instance 
         self.plan()
 
+        #Return the action requested by current plan subgoal
         return self.plan.execute_subgoals()
