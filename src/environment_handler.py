@@ -49,3 +49,5 @@ def _process_obs(env, agent_vis_mask, agent_vis_obs, door_coords):
         #print(specular_obs)
 
         return agent_vis_mask, agent_vis_obs, door_coords
+
+

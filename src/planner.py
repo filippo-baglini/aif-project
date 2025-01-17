@@ -1,11 +1,10 @@
 import numpy as np
 
-from goal_parser import understand_goal
-from utils import manhattan_distance, manhattan_distance_accounting_for_walls, manhattan_distance_accounting_for_objects
-from environment_handler import _process_obs
-from subgoals import *
+from .goal_parser import understand_goal
+from .utils import manhattan_distance, manhattan_distance_accounting_for_walls
+from .environment_handler import _process_obs
+from .subgoals import *
 import heapq
-import time
 
 class Planner:
 
@@ -39,15 +38,13 @@ class Planner:
         self.save_path = []
         self.prev_frontier = None
         self.drop_pos = None
-        self.prev_empty_cell = []
 
         self.carrying = False
         self.carrying_object = None
         self.carrying_target = None
 
         self.important_objects = []
-        self.important_objects_coords = None
-        self.importatn_objects_first_loc = None
+        self.important_objects_coords = []
 
     def __call__(self):
 
@@ -127,11 +124,11 @@ class Planner:
         f_score = {self.pos: manhattan_distance(self.pos, target)}
         # Path tracking
         came_from = {}
-        #print("A* TARGETTTT: ", target)
+
         while open_set:
             
             # Pop the cell with the lowest f-score
-            current_f, current = heapq.heappop(open_set)
+            _, current = heapq.heappop(open_set)
 
             # Goal reached
             if current == target:
@@ -188,9 +185,7 @@ class Planner:
 
         # No path found
         print("Path not found")
-        #return "FAILURE"
-        time.sleep(5000000)
-        return None
+        return "FAILURE"
     
     def neighbors(self,cell):
             """Return valid neighbors (up, down, left, right)."""
@@ -218,7 +213,7 @@ class Planner:
         # Iterate through the path
         if (len(self.path) == 0):
             print("PROBLEM, A* RETURNED A PATH OF LENGTH 0, NEED TO DEBUG")
-            time.sleep(1000)
+            return "FAILURE"
         
         cell_pos = self.path[0]
         pos = self.pos
@@ -246,11 +241,9 @@ class Planner:
             return self.actions.forward
         
         elif np.array_equal(direction_to_cell, np.array(f_vec)) and cell_pos == target:
-            # if self.step_is_blocked(cell_pos) and self.target_in_cell(self.cell_in_front(), self.sub_goals[0].target) != self.sub_goals[0].target:
-            #     # print(f"object in front: {self.target_in_cell(self.cell_in_front(), self.sub_goals[0].target)}")
-            #     # print(f"subgoal target: {self.sub_goals[0].target}")
-
-            #     return "BLOCKED"
+            if self.step_is_blocked(cell_pos) and self.target_in_cell(self.cell_in_front(), self.sub_goals[0].target) != self.sub_goals[0].target:
+                return "BLOCKED"
+            
             self.path.pop(0)
             return self.actions.done
         
@@ -329,8 +322,8 @@ class Planner:
 
                 if self.vis_obs[col_index, row_index][0] == 1:
                     if self.drop_pos is not None and (col_index, row_index) == self.drop_pos:
-                        # print("Entrato", self.drop_pos)
                         pass
+
                     else:
                         empty_cell.append((col_index, row_index))
                         empty_cell_distance.append(manhattan_distance(cell, (col_index, row_index)))
@@ -367,7 +360,6 @@ class Planner:
                 blocked_cells.append(n)
             
             if self.vis_obs[n[0], n[1]][0] == 1:
-                #print(f"empty cell: {n}")
                 empty_cells.append(n)
 
         if len(empty_cells) == 0:
@@ -439,9 +431,9 @@ class Planner:
     
     def target_in_cell(self, cell, target):
 
-        target_type= target[0]
-        target_color = target[1]
-        target_loc = target[2]
+        target_type = target[0] if target is not None else None
+        target_color = target[1] if target is not None else None
+        target_loc = target[2] if target is not None else None
 
         if target_type is not None and target_color is not None:
             
@@ -481,28 +473,28 @@ class Planner:
 
 
     def execute_subgoals(self):
-        # print(f"Subgoals: {self.sub_goals}")
+        if len(self.sub_goals) > 500:
+            print("Infinite recursion, something is wrong")
+            return "FAILURE"
+        
         if self.sub_goals:
             current_subgoal = self.sub_goals[0]
-            # if not isinstance(current_subgoal, PickupSubgoal) and not isinstance(current_subgoal, OpenSubgoal) and not isinstance(current_subgoal, DropSubgoal):
-            #     print(f"Executing subgoal: {current_subgoal}, Target: {current_subgoal.target_pos}, Reason: {current_subgoal.reason}")
             action = current_subgoal()
             
             if action is self.actions.done:
-                #print("Subgoal completed")
                 action = self.execute_subgoals()
+
             if action == "FAILURE":
                 return "FAILURE"
                 
-            # print(f"returning action: {action}")
             return action
 
         else:
-            print("All subgoals completed")
-            return "COMPLETED"
+            print("All subgoals completed, but mission is not terminated")
+            return "FAILURE"
     
 
-    def find_relative_position(self, goal_loc, goal_col, goal_row): #RIGUARDA TUTTE LE CONDIZIONI!!!!!!!!!!!
+    def find_relative_position(self, goal_loc, goal_col, goal_row):
 
         relative_position = (goal_col - self.starting_pos[0], goal_row - self.starting_pos[1])
 

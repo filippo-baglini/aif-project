@@ -30,10 +30,15 @@ def test_bot(env_id):
     """
     # Use the parameter env_id to make the environment
     env = gym.make(env_id)
-    # Debugging: use a specific environment
-    # env = gym.make("BabyAI-GoToImpUnlock-v0", render_mode="human")
+    env = gym.make("BabyAI-UnlockToUnlock-v0", render_mode = "human")
+    #env = gym.make("BabyAI-Unlock-v0", render_mode = "human")
+    #env = gym.make("BabyAI-GoToImpUnlock-v0", render_mode = "human")
+    # env = gym.make("BabyAI-BossLevelNoUnlock-v0", render_mode="human") # for visual debugging
+    # env = gym.make("BabyAI-SynthS5R2-v0", render_mode = "human")
 
-    curr_seed = 7
+    # reset env
+    curr_seed = 0
+
     num_steps = 500
     steps = 0
     terminated = False
@@ -41,7 +46,8 @@ def test_bot(env_id):
     seed_results = {}
 
     while not terminated:
-        env.reset(seed=curr_seed)
+        env.reset(seed=15)
+        #print (env.observation_space)
 
         # Create expert bot
         expert = BabyAIBot(env)
@@ -49,26 +55,7 @@ def test_bot(env_id):
         last_action = None
 
         for _step in range(num_steps):
-            # Define a function to get the action
-            action = None
-            action_ready = threading.Event()
-
-            def get_action():
-                nonlocal action
-                action = expert.replan(last_action)
-                action_ready.set()
-
-            # Start the action in a separate thread
-            action_thread = threading.Thread(target=get_action)
-            action_thread.start()
-
-            # Wait for the action with a timeout of 5 seconds
-            if not action_ready.wait(timeout=1):
-                print("Action timed out!")
-                env.close()
-                return  # Exit the test
-
-            # Perform the environment step
+            action = expert.replan(last_action)
             obs, reward, terminated, truncated, info = env.step(action)
             steps += 1
             last_action = action
