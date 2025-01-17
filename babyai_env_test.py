@@ -19,7 +19,7 @@ babyai_envs = [
 
 # Define the number of seeds to test
 num_first_seed = 1
-num_last_seed = 30
+num_last_seed = 25
 
 # Results dictionary to store data for each seed
 seed_results = {}
@@ -83,6 +83,6 @@ for seed, results in seed_results.items():
     print(f"Seed {seed}: Total Steps = {results['total_steps']}, Completed Missions = {results['completed_missions']}")
 
 # Save results to a file
-with open("results_summary2.txt", "w") as file:
+with open("results_summary3.txt", "w") as file:
     for seed, results in seed_results.items():
         file.write(f"Seed {seed}: Total Steps = {results['total_steps']}, Completed Missions = {results['completed_missions']}\n")

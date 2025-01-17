@@ -1,0 +1,2 @@
+Seed 1: Total Steps = 2555, Completed Missions = 91
+Seed 2: Total Steps = 5110, Completed Missions = 182

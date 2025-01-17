@@ -47,7 +47,8 @@ class Planner:
         self.carrying_target = None
 
         self.important_objects = []
-        self.important_objects_coords = []
+        self.important_objects_coords = None
+        self.importatn_objects_first_loc = None
 
 
     def __call__(self):
@@ -72,7 +73,7 @@ class Planner:
                 if isinstance(element, tuple):
                     if goal_color is not None and goal_type is not None:
                         if element[0] == goal_type and element[1] == goal_color:
-                            if goal_loc is not None: 
+                            if goal_loc is not None:
                                 if(self.find_relative_position(goal_loc, row_index, col_index)):
                                    goals.append((row_index, col_index)) 
                             else:
@@ -81,8 +82,11 @@ class Planner:
                     elif goal_color is None:
                         if element[0] == goal_type:
                             if goal_loc is not None: 
+                                # print((self.find_relative_position(goal_loc, row_index, col_index)))
                                 if (self.find_relative_position(goal_loc, row_index, col_index)):
                                     goals.append((row_index, col_index))
+                                    
+                                    
                             else:
                                 goals.append((row_index, col_index))
 
@@ -96,6 +100,7 @@ class Planner:
 
         for goal in goals:
             if goal_loc is not None:
+                
                 distance = manhattan_distance(self.starting_pos, goal)
             else:
                 distance = manhattan_distance(self.pos, goal)

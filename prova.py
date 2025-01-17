@@ -1,11 +1,10 @@
 from __future__ import annotations
 
 import gymnasium as gym
-
-
+import threading
+import time
 from minigrid.utils.baby_ai_bot import BabyAIBot
 
-# see discussion starting here: https://github.com/Farama-Foundation/Minigrid/pull/381#issuecomment-1646800992
 broken_bonus_envs = {
     "BabyAI-PutNextS5N2Carrying-v0",
     "BabyAI-PutNextS6N3Carrying-v0",
@@ -13,14 +12,16 @@ broken_bonus_envs = {
     "BabyAI-KeyInBox-v0",
 }
 
-# get all babyai envs (except the broken ones)
-babyai_envs = []
-for k_i in gym.envs.registry.keys():
-    if k_i.split("-")[0] == "BabyAI":
-        if k_i not in broken_bonus_envs:
-            babyai_envs.append(k_i)
+# Get all BabyAI environments (except the broken ones)
+babyai_envs = [
+    k_i for k_i in gym.envs.registry.keys()
+    if k_i.split("-")[0] == "BabyAI" and k_i not in broken_bonus_envs
+]
 
-result_list = []
+
+seed_results = {}
+num_step = []
+num_completed_missions = []
 
 def test_bot(env_id):
     """
@@ -29,57 +30,78 @@ def test_bot(env_id):
     """
     # Use the parameter env_id to make the environment
     env = gym.make(env_id)
-    #env = gym.make("BabyAI-UnlockToUnlock-v0", render_mode = "human")
-    #env = gym.make("BabyAI-Unlock-v0", render_mode = "human")
-    env = gym.make("BabyAI-BossLevelNoUnlock-v0", render_mode = "human")
-    #env = gym.make("BabyAI-MiniBossLevel-v0", render_mode="human") # for visual debugging
+    # Debugging: use a specific environment
+    # env = gym.make("BabyAI-GoToImpUnlock-v0", render_mode="human")
 
-    # reset env
     curr_seed = 7
-
     num_steps = 500
     steps = 0
     terminated = False
-    while not terminated:
-        env.reset(seed=7)
-        #print (env.observation_space)
 
-        # create expert bot
+    seed_results = {}
+
+    while not terminated:
+        env.reset(seed=curr_seed)
+
+        # Create expert bot
         expert = BabyAIBot(env)
-        #print(expert.mission)
 
         last_action = None
+
         for _step in range(num_steps):
-            action = expert.replan(last_action)
+            # Define a function to get the action
+            action = None
+            action_ready = threading.Event()
+
+            def get_action():
+                nonlocal action
+                action = expert.replan(last_action)
+                action_ready.set()
+
+            # Start the action in a separate thread
+            action_thread = threading.Thread(target=get_action)
+            action_thread.start()
+
+            # Wait for the action with a timeout of 5 seconds
+            if not action_ready.wait(timeout=1):
+                print("Action timed out!")
+                env.close()
+                return  # Exit the test
+
+            # Perform the environment step
             obs, reward, terminated, truncated, info = env.step(action)
             steps += 1
             last_action = action
             env.render()
 
             if terminated:
-                print(f"PROVA NUM_STEPS: {steps}")
-                result = (env_id, steps)
-                result_list.append(result)
+                # print(f"PROVA NUM_STEPS: {steps}")
+                # result = (env_id, steps)
+                num_step.append(_step)
+                num_completed_missions.append(env_id)
                 break
 
             if _step == num_steps - 1:
-                return("MAX STEPS TAKEN")
-
-        # try again with a different seed
-        #curr_seed += 1
+                num_step.append(_step)
+                # print("MAX STEPS TAKEN")
+                return
 
     env.close()
 
 if __name__ == "__main__":
     # Run a specific environment for debugging
-    for i, env_id in enumerate(babyai_envs):  # Loop through all environments
-        if i == 100:
-            break
-        print(f"Testing environment: {env_id}")
-        test_bot(env_id)  # Call the test function
-    print(result_list)
-    sum_steps = 0
-    for i in range(len(result_list)):
-        sum_steps += result_list[i][1]
-    print(len(result_list)) 
-    print(sum_steps)
+    for seed in range (1, 3, 1):
+
+        for j, env_id in enumerate(babyai_envs):  # Loop through all environments
+            print(f"Testing environment: {env_id}")
+            print(f"-----------------{seed}-{j}--------------------------------")
+            test_bot(env_id)  # Call the test function
+        
+        total_num_step = sum(num_step)
+        completed_missions = len(num_completed_missions)
+
+        seed_results[seed] = {"total_steps": total_num_step, "completed_missions": completed_missions}
+
+with open("results_summary_babyai_bot.txt", "w") as file:
+    for seed, results in seed_results.items():
+        file.write(f"Seed {seed}: Total Steps = {results['total_steps']}, Completed Missions = {results['completed_missions']}\n")

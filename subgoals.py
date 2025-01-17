@@ -14,10 +14,11 @@ class GoNextToSubgoal(Subgoal):
         self.reason = reason
         self.target_pos = target_pos
 
+
         self.action = None
 
     def __call__(self):
-        
+        print("REASON:", self.reason)
         self.action = None
 
         if self.target_pos is None:
@@ -76,7 +77,7 @@ class GoNextToSubgoal(Subgoal):
                 
 
                 if self.planner.carrying_target in self.planner.important_objects:
-                    # print("IMPORTANT OBJECTS:", self.planner.important_objects)
+                    print("IMPORTANT OBJECTS:", self.planner.important_objects)
                     # print("EMPTY CELL:", empty_cell)    
                     self.planner.save_path = self.planner.path
                     self.planner.sub_goals.insert(0, GoNextToSubgoal(self.planner, self.planner.carrying_target, "PickUp_Keep_important"))
@@ -84,26 +85,26 @@ class GoNextToSubgoal(Subgoal):
                     self.planner.sub_goals.insert(0, GoNextToSubgoal(self.planner, self.planner.carrying_target, "Drop_important", empty_cell))
 
                 else:
-                    if self.reason == "Drop":
-                        self.planner.save_path.extend(self.planner.path)
-                        if empty_cell in self.planner.prev_empty_cell:
-                            # self.planner.save_path.extend(self.planner.path)
-                            empty_cell = self.planner.find_closest_empty_cell_avoiding_previous_path(self.planner.pos)
-                            self.planner.sub_goals.insert(0, GoNextToSubgoal(self.planner, self.planner.carrying_target, "Drop", empty_cell))
-                        else:
-                            empty_cell = empty_cell
+                    # if self.reason == "Drop":
+                    #     self.planner.save_path.extend(self.planner.path)
+                    #     if empty_cell in self.planner.prev_empty_cell:
+                    #         # self.planner.save_path.extend(self.planner.path)
+                    #         empty_cell = self.planner.find_closest_empty_cell_avoiding_previous_path(self.planner.pos)
+                    #         self.planner.sub_goals.insert(0, GoNextToSubgoal(self.planner, self.planner.carrying_target, "Drop", empty_cell))
+                    #     else:
+                    #         empty_cell = empty_cell
                             
-                            print("I WAS GOING TO DROP OBJECT SOMEWHERE now drop", empty_cell)
-                            # self.planner.save_path.extend(self.planner.path)
-                            self.planner.sub_goals.insert(0, GoNextToSubgoal(self.planner, self.planner.carrying_target, "PickUp_Keep"))
-                            self.planner.sub_goals.insert(0, GoNextToSubgoal(self.planner, self.planner.target_in_cell(self.planner.path[0], self.target), "PickUp_NoKeep_Move", self.planner.cell_in_front()))
-                            self.planner.sub_goals.insert(0, GoNextToSubgoal(self.planner, self.planner.carrying_target, "Drop", empty_cell))
+                    #         print("I WAS GOING TO DROP OBJECT SOMEWHERE now drop", empty_cell)
+                    #         # self.planner.save_path.extend(self.planner.path)
+                    #         self.planner.sub_goals.insert(0, GoNextToSubgoal(self.planner, self.planner.carrying_target, "PickUp_Keep"))
+                    #         self.planner.sub_goals.insert(0, GoNextToSubgoal(self.planner, self.planner.target_in_cell(self.planner.path[0], self.target), "PickUp_NoKeep_Move", self.planner.cell_in_front()))
+                    #         self.planner.sub_goals.insert(0, GoNextToSubgoal(self.planner, self.planner.carrying_target, "Drop", empty_cell))
 
-                    else:
+                    # else:
                         # self.planner.prev_empty_cell = empty_cell
-                        print("DROP", empty_cell)
+                    print("DROP", empty_cell)
 
-                        self.planner.sub_goals.insert(0, GoNextToSubgoal(self.planner, self.target, "Drop", empty_cell))
+                    self.planner.sub_goals.insert(0, GoNextToSubgoal(self.planner, self.target, "Drop", empty_cell))
 
             else:
                 self.planner.sub_goals.insert(0, PickupSubgoal(self.planner, self.target))
@@ -111,8 +112,8 @@ class GoNextToSubgoal(Subgoal):
             return self.planner.actions.done
         
         if self.action == "BLOCKED_SIDE":
-            # print("BLOCKED SIDE")
-            # time.sleep(3)
+            print("BLOCKED SIDE")
+            time.sleep(3)
             empty_cell = self.planner.find_closest_empty_cell(self.planner.pos)
             self.planner.prev_empty_cell.append(empty_cell)
             # print("TARGET:", self.target)
@@ -161,12 +162,12 @@ class GoNextToSubgoal(Subgoal):
 
             elif self.reason == "PickUp_Keep_important":
                 self.planner.sub_goals.insert(0, PickupSubgoal(self.planner, self.target))
-                self.planner.important_objects.append(self.target)
+                # self.planner.important_objects.append(self.planner.vis_obs[self.target_pos])
                 # print("IMPORTANT OBJECTS:", self.planner.important_objects)
 
             elif self.reason == "Drop_important":
                 self.planner.sub_goals.insert(0, DropSubgoal(self.planner))
-                self.planner.important_objects_coords.append(self.planner.cell_in_front())
+                self.planner.important_objects_coords = self.planner.cell_in_front()
                 # self.planner.important_objects.remove(self.planner.carrying_target)
                 
             elif self.reason == "PutNext":
@@ -205,7 +206,7 @@ class PickupSubgoal(Subgoal):
 
     def __call__(self):
         if self.planner.carrying:
-
+            print("CARRYING")
             self.planner.sub_goals.pop(0)
             
             empty_cell = self.planner.find_closest_empty_cell(self.planner.pos)
@@ -258,6 +259,7 @@ class ExploreSubgoal(Subgoal):
     def __call__(self):
         self.target_pos = self.planner.look_for_goal(self.target[0], self.target[1], self.target[2])
 
+
         if self.target_pos is None:
             #time.sleep(1)
             self.frontier = self.planner.find_frontiers()
@@ -303,6 +305,16 @@ class ExploreSubgoal(Subgoal):
                 # print("DROP CELL:", self.target_pos)
                 self.planner.drop_pos = self.target_pos
                 self.planner.sub_goals[0].target_pos = self.target_pos
+
+            elif self.reason == "PickUp_Keep_important":
+
+                if self.planner.important_objects_coords is not None:
+                    self.target_pos = self.planner.important_objects_coords
+
+                print(self.target_pos)
+
+                self.planner.sub_goals[0].target_pos = self.target_pos
+
             else:
                 self.planner.sub_goals[0].target_pos = self.target_pos
 
