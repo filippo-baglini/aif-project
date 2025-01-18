@@ -13,5 +13,9 @@ setup(
     long_description=open("README.md").read(),
     long_description_content_type="text/markdown",
     packages=find_packages(),
+    include_package_data=True,  # Include non-Python files
+    package_data={
+        "aif_project": ["results/*.txt"],  # Specify the .txt files to include
+    },
     install_requires=parse_requirements("requirements.txt"),  # Automatically read requirements
 )
