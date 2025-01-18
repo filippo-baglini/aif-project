@@ -1,7 +1,7 @@
 # Mini AI for MiniGrid Baby AI Environment
 
 <p align = "center">
-  <img src = "Stemma_unipi.svg" width="200" height="200">
+  <img src = "figures/Stemma_unipi.svg" width="200" height="200">
 </p>
 
 <p align = "center">
@@ -59,7 +59,7 @@ python3 tests/OurBot_test
 This GIF showcases our bot solving a challenging level where it must navigate a path filled with obstacles to drop an item beside another specific object.
 
 <div align="center">
-  <img src="BabyAI-SynthS5R2-v0_simulation.gif" alt="BabyAI Bot Simulation" width="400">
+  <img src="figures/BabyAI-SynthS5R2-v0_simulation.gif" alt="Personal agent Bot Simulation" width="400">
 </div>
 
 
