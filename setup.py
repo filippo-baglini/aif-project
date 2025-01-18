@@ -6,7 +6,7 @@ def parse_requirements(filename):
         return [line.strip() for line in file if line.strip() and not line.startswith('#')]
 
 setup(
-    name="aif-project",
+    name="aif_project",
     version="0.1.0",
     author="Nico Conti",
     description="Aif course project for Master degree at Pisa University",
