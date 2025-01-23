@@ -9,9 +9,9 @@
   <br>
   A project for
   <br>
-  Artificial Intelligence Foundaments
+  the Artificial Intelligence Fundamentals course
   <br>
-  courses of AI Master at University of Pisa.
+  in the AI Master's program at the University of Pisa.
 </p>
 
 ## Authors
