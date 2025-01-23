@@ -32,26 +32,46 @@ While designed for BabyAI, the AI can be extended for more complex MiniGrid envi
 ### Performance:
 Achieves a 99.8% win rate across 9,200 levels, surpassing the default BabyAI bot from the Farama Foundation library, which has a win rate of 99.47%. Additionally, our approach completes levels using fewer steps, demonstrating superior efficiency.
 
-## 🚀 Getting Started
-### Prerequisites
 
-Installation
-Clone the Repository:
+## 🚀 Getting Started
+
+### Prerequisites  
+- Python 3.x  
+- pip  
+
+
+
+### Method 1: Clone and Install Locally
+1. **Clone the Repository:**
 
 ```bash
 git clone https://github.com/filippo-baglini/aif-project.git
 cd aif-project
 ```
 
-Install Dependencies:
+2. **Install Dependencies:**
 
 ```bash
 pip install -r requirements.txt
 ```
 
-Run the AI:
+3. **Run the AI:**
 ```bash
-python3 tests/OurBot_test
+python3 aif_project/tests/OurBot_test
+```
+
+---
+
+### Method 2: Install Directly as a Package
+Install the package from GitHub and run it without cloning
+
+1. **Install the Package:**
+```bash
+pip install git+https://github.com/filippo-baglini/aif-project.git
+```
+2. **Run the AI:**
+```bash
+python3 -m aif_project.tests.OurBot_test
 ```
 
 ## 🎥 Simulation
