@@ -26,7 +26,7 @@ The goal of this project is to design a personal AI capable of interacting with 
 ## 🛠 Features
 ### Custom AI Agent:
 Purpose-built for BabyAI environments with a focus on efficiency of steps.
-Utilizes the A* search and Online Planning as the main algorithm for decision-making.
+Utilizes the A* search and a mixture between Online-Contingency Planning as the main algorithm for decision-making.
 ### Adaptability:
 While designed for BabyAI, the AI can be extended for more complex MiniGrid environments with modifications to the mission parsing method.
 ### Performance:
